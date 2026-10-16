@@ -673,7 +673,7 @@ async function micStartListening() {
       char: (c) => { micText = (micText + c).replace(/ {2,}/g, " ").slice(-2000); micRender(); },
     });
   } catch (err) {
-    toast(err && err.name === "NotAllowedError" ? "🎙️ Mic blocked. Allow it in Settings › Safari › Microphone" : "🙉 Couldn't open the microphone", 3500);
+    toast(err && err.name === "NotAllowedError" ? "🎙️ Mic blocked. Tap aA in Safari's address bar › Website Settings › Microphone › Allow" : `🙉 Couldn't open the microphone (${(err && (err.name || err.message)) || "unknown"})`, 5000);
     return;
   }
   btn.textContent = "⏹ Stop listening"; btn.classList.add("listening"); buzz();

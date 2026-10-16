@@ -10,15 +10,30 @@ const MicDecoder = {
 
   async start(cb) {
     this.cb = cb;
-    const ctx = Sound.unlock();
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-    if (ctx.state !== "running") await ctx.resume();
-    this.src = ctx.createMediaStreamSource(this.stream);
-    this.an = ctx.createAnalyser(); this.an.fftSize = 4096; this.an.smoothingTimeConstant = 0.3;
-    this.sp = ctx.createScriptProcessor(1024, 1, 1);
-    this.mute = ctx.createGain(); this.mute.gain.value = 0;
-    this.src.connect(this.an); this.src.connect(this.sp); this.sp.connect(this.mute).connect(ctx.destination);
-    this.rate = ctx.sampleRate;
+    // iPhone: the app's audio session is "playback" (so tones play with the silent switch on),
+    // which blocks the microphone. Switch to play-and-record while listening.
+    this.setSession("play-and-record");
+    try {
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      } catch (err) {
+        if (err.name === "NotAllowedError" || err.name === "SecurityError") throw err;
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // simplest request as a fallback
+      }
+      // A separate audio context for the mic: Safari is happier when it is created after the mic opens.
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = (this.ctx = new AC());
+      if (ctx.state !== "running") await ctx.resume();
+      this.src = ctx.createMediaStreamSource(this.stream);
+      this.an = ctx.createAnalyser(); this.an.fftSize = 4096; this.an.smoothingTimeConstant = 0.3;
+      this.sp = ctx.createScriptProcessor(1024, 1, 1);
+      this.mute = ctx.createGain(); this.mute.gain.value = 0;
+      this.src.connect(this.an); this.src.connect(this.sp); this.sp.connect(this.mute).connect(ctx.destination);
+      this.rate = ctx.sampleRate;
+    } catch (err) {
+      this.release();
+      throw err;
+    }
     this.sub = Math.round(this.rate * 0.005); // ~5 ms analysis blocks
     this.reset();
     this.sp.onaudioprocess = (e) => this.process(e.inputBuffer.getChannelData(0));
@@ -27,12 +42,20 @@ const MicDecoder = {
     this.on = true;
   },
 
+  setSession(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch {} },
+
+  release() {
+    try { this.sp && this.sp.disconnect(); this.src && this.src.disconnect(); this.an && this.an.disconnect(); } catch {}
+    if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
+    if (this.ctx) this.ctx.close().catch(() => {});
+    this.stream = this.ctx = this.sp = this.src = this.an = null;
+    this.setSession("playback");
+  },
+
   stop() {
     this.on = false;
     clearInterval(this.freqTimer);
-    try { this.sp.disconnect(); this.src.disconnect(); this.an.disconnect(); } catch {}
-    if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
-    this.stream = null;
+    this.release();
     this.flush();
     this.cb.tone && this.cb.tone(false);
   },
