@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Dit Dah Dojo · Morse Trainer</title>
+<meta name="description" content="A fun Morse code trainer: groups of 5, letters, numbers, QSOs, callsign sprint, reflex game and a straight key.">
+<meta name="theme-color" content="#0b0820">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dit Dah Dojo">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css?v=1.0.0">
+</head>
+<body data-theme="neon">
+<canvas id="confetti"></canvas>
+
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true"><span></span><span class="dah"></span><span></span></div>
+    <div>
+      <h1>Dit Dah Dojo</h1>
+      <div class="rank" id="rankTitle">Lid in Training</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <div class="streak" id="streak" title="Daily streak">🔥 0</div>
+    <button class="chip" id="speedChip" aria-label="Speed and tone settings">20 WPM</button>
+  </div>
+  <div class="xpbar"><div id="xpFill"></div><span id="xpText">Lvl 1 · 0 XP</span></div>
+</header>
+
+<div id="installHint" class="install hidden">
+  <span>📲 Make it an app: tap <b>Share</b> then <b>Add to Home Screen</b>.</span>
+  <button class="x" data-close="installHint">✕</button>
+</div>
+
+<main>
+  <!-- ===== COPY ===== -->
+  <section class="tab active" id="tab-copy">
+    <div class="card">
+      <div class="seg" id="copyMode">
+        <button data-v="groups" class="on">Groups of 5</button>
+        <button data-v="words">Words</button>
+        <button data-v="calls">Callsigns</button>
+        <button data-v="custom">My text</button>
+      </div>
+      <div id="groupOpts">
+        <label class="lbl">Characters</label>
+        <div class="pills" id="charSet">
+          <button data-v="letters" class="on">Letters</button>
+          <button data-v="numbers">Numbers</button>
+          <button data-v="mixed">Mixed</button>
+          <button data-v="punct">+ Punctuation</button>
+          <button data-v="koch">Koch</button>
+        </div>
+        <div id="kochRow" class="row hidden">
+          <label class="lbl">Koch lesson <b id="kochVal">2</b></label>
+          <input type="range" id="kochLesson" min="2" max="40" value="2">
+          <div class="koch-chars" id="kochChars"></div>
+        </div>
+        <div class="row two">
+          <div><label class="lbl">Group size <b id="gsVal">5</b></label><input type="range" id="groupSize" min="1" max="8" value="5"></div>
+          <div><label class="lbl">Groups <b id="gcVal">10</b></label><input type="range" id="groupCount" min="3" max="50" value="10"></div>
+        </div>
+      </div>
+      <div id="customOpts" class="hidden">
+        <textarea id="customText" rows="2" placeholder="Type anything, e.g. CQ CQ DE W6ABC K">CQ CQ DE DL1ABC K</textarea>
+      </div>
+    </div>
+
+    <div class="player card" id="copyPlayer">
+      <div class="scope-wrap"><canvas class="scope"></canvas><div class="led"></div></div>
+      <div class="controls">
+        <button class="ctl" data-act="slower" title="Slower">🐢</button>
+        <button class="play" data-act="play"><span class="pi">▶</span></button>
+        <button class="ctl" data-act="faster" title="Faster">🐇</button>
+      </div>
+      <div class="sub-controls">
+        <button class="ghost" data-act="new">🎲 New</button>
+        <button class="ghost" data-act="reveal">👀 Reveal</button>
+        <button class="ghost" data-act="share">📤 Share</button>
+      </div>
+      <div class="reveal-text blurred" data-out="text"></div>
+    </div>
+
+    <div class="card">
+      <label class="lbl">Type what you hear</label>
+      <textarea id="copyInput" rows="3" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Copy it here..."></textarea>
+      <button class="big" id="copyCheck">✅ Check my copy</button>
+      <div id="copyResult"></div>
+    </div>
+  </section>
+
+  <!-- ===== QSO ===== -->
+  <section class="tab" id="tab-qso">
+    <div class="card intro">
+      <h2>📻 QSO Simulator</h2>
+      <p>Eavesdrop on a full ham contact, then take the quiz. Name, QTH, RST, rig... did you catch it all?</p>
+      <div class="seg" id="qsoType">
+        <button data-v="rag" class="on">Rag chew</button>
+        <button data-v="short">Quick 5NN</button>
+        <button data-v="contest">Contest</button>
+      </div>
+    </div>
+    <div class="player card" id="qsoPlayer">
+      <div class="scope-wrap"><canvas class="scope"></canvas><div class="led"></div></div>
+      <div class="controls">
+        <button class="ctl" data-act="slower">🐢</button>
+        <button class="play" data-act="play"><span class="pi">▶</span></button>
+        <button class="ctl" data-act="faster">🐇</button>
+      </div>
+      <div class="sub-controls">
+        <button class="ghost" data-act="new">🎲 New QSO</button>
+        <button class="ghost" data-act="reveal">👀 Transcript</button>
+        <button class="ghost" data-act="quiz">🧠 Quiz</button>
+      </div>
+      <div class="reveal-text blurred qso-text" data-out="text"></div>
+    </div>
+    <div class="card hidden" id="quizCard">
+      <h3>🧠 Pop quiz, OM!</h3>
+      <div id="quiz"></div>
+    </div>
+  </section>
+
+  <!-- ===== GAMES ===== -->
+  <section class="tab" id="tab-games">
+    <div class="seg" id="gameMode">
+      <button data-v="reflex" class="on">⚡ Reflex</button>
+      <button data-v="sprint">🏁 Call Sprint</button>
+    </div>
+
+    <div id="reflexGame">
+      <div class="card hud">
+        <div><small>Streak</small><b id="rxStreak">0</b></div>
+        <div><small>Score</small><b id="rxScore">0</b></div>
+        <div><small>Speed</small><b id="rxWpm">20</b></div>
+        <div><small>Best</small><b id="rxBest">0</b></div>
+      </div>
+      <div class="card">
+        <div class="scope-wrap small"><canvas class="scope" id="rxScope"></canvas><div class="led" id="rxLed"></div></div>
+        <div class="rx-msg" id="rxMsg">Tap Start, then tap the letter you hear. Speed climbs as you nail it!</div>
+        <div class="pills" id="rxSet">
+          <button data-v="letters" class="on">A–Z</button>
+          <button data-v="numbers">0–9</button>
+          <button data-v="mixed">All</button>
+          <button data-v="koch">Koch set</button>
+        </div>
+        <div class="keypad" id="rxPad"></div>
+        <button class="big" id="rxStart">⚡ Start</button>
+      </div>
+    </div>
+
+    <div id="sprintGame" class="hidden">
+      <div class="card hud">
+        <div><small>Call</small><b id="spN">0/25</b></div>
+        <div><small>Points</small><b id="spPts">0</b></div>
+        <div><small>Speed</small><b id="spWpm">20</b></div>
+        <div><small>Best</small><b id="spBest">0</b></div>
+      </div>
+      <div class="card">
+        <div class="scope-wrap small"><canvas class="scope" id="spScope"></canvas><div class="led" id="spLed"></div></div>
+        <div class="rx-msg" id="spMsg">25 callsigns. Right answer = faster and more points. Wrong = slower. Like a real pileup, minus the lids.</div>
+        <input id="spInput" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Callsign" enterkeyhint="go">
+        <div class="row two">
+          <button class="ghost" id="spRepeat">🔁 Again (−50%)</button>
+          <button class="big" id="spGo">🏁 Start</button>
+        </div>
+        <div id="spLog" class="splog"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== KEY ===== -->
+  <section class="tab" id="tab-key">
+    <div class="card">
+      <div class="seg" id="keyType">
+        <button data-v="straight" class="on">Straight key</button>
+        <button data-v="paddle">Paddles</button>
+      </div>
+      <div class="challenge">
+        <span>Send this:</span> <b id="keyTarget">—</b>
+        <button class="ghost tiny" id="keyNewTarget">🎯 New</button>
+        <button class="ghost tiny" id="keyHear">🔊</button>
+      </div>
+      <div class="key-out">
+        <div class="key-elems" id="keyElems"></div>
+        <div class="key-text" id="keyText"></div>
+      </div>
+      <div class="key-meter"><div id="keyWpm">Your speed: — WPM</div></div>
+      <div id="straightKey" class="keyarea">
+        <button class="straight" id="skBtn"><span>TAP &amp; HOLD</span></button>
+      </div>
+      <div id="paddleKey" class="keyarea hidden">
+        <button class="paddle" id="pdDit">·<small>DIT</small></button>
+        <button class="paddle" id="pdDah">—<small>DAH</small></button>
+      </div>
+      <button class="ghost" id="keyClear">🧽 Clear</button>
+    </div>
+  </section>
+
+  <!-- ===== CHART ===== -->
+  <section class="tab" id="tab-chart">
+    <div class="card">
+      <div class="pills" id="chartSet">
+        <button data-v="letters" class="on">Letters</button>
+        <button data-v="numbers">Numbers</button>
+        <button data-v="punct">Punctuation</button>
+        <button data-v="pro">Prosigns</button>
+        <button data-v="abbr">Ham lingo</button>
+      </div>
+      <div class="chart" id="chart"></div>
+    </div>
+  </section>
+
+  <!-- ===== ME ===== -->
+  <section class="tab" id="tab-me">
+    <div class="card me-head">
+      <div class="avatar" id="avatar">🐣</div>
+      <div>
+        <h2 id="meTitle">Lid in Training</h2>
+        <div id="meSub">Level 1</div>
+      </div>
+    </div>
+    <div class="card stats" id="stats"></div>
+    <div class="card">
+      <h3>📈 Copy accuracy (last 20)</h3>
+      <canvas id="histo" height="120"></canvas>
+    </div>
+    <div class="card">
+      <h3>🏆 Badges</h3>
+      <div class="badges" id="badges"></div>
+    </div>
+    <div class="card">
+      <h3>⚙️ Settings</h3>
+      <div id="settingsHere"></div>
+    </div>
+    <div class="card joke" id="joke"></div>
+    <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.0.0 · 73 de Dit Dah Dojo</p>
+  </section>
+</main>
+
+<!-- Settings sheet -->
+<div class="sheet-back hidden" id="sheetBack"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div id="settings">
+    <h3>🎛️ Sound &amp; speed</h3>
+    <div class="row"><label class="lbl">Character speed <b id="wpmVal">20</b> WPM</label><input type="range" id="wpm" min="5" max="50" value="20"></div>
+    <div class="row"><label class="lbl">Effective (Farnsworth) speed <b id="fwVal">20</b> WPM</label><input type="range" id="fw" min="5" max="50" value="20"></div>
+    <div class="row"><label class="lbl">Tone <b id="toneVal">600</b> Hz</label><input type="range" id="tone" min="300" max="1000" step="10" value="600"></div>
+    <div class="row"><label class="lbl">Volume <b id="volVal">70</b>%</label><input type="range" id="vol" min="0" max="100" value="70"></div>
+    <div class="row"><label class="lbl">Band noise (QRN) <b id="qrnVal">0</b>%</label><input type="range" id="qrn" min="0" max="100" value="0"></div>
+    <div class="toggles">
+      <label><input type="checkbox" id="qsb"> 🌊 QSB fading</label>
+      <label><input type="checkbox" id="sfx" checked> 🎺 Fun sound effects</label>
+      <label><input type="checkbox" id="speak"> 🤖 Robot reads answers</label>
+      <label><input type="checkbox" id="vvv" checked> 📣 Start with "VVV"</label>
+    </div>
+    <label class="lbl">Theme</label>
+    <div class="pills" id="themes">
+      <button data-v="neon" class="on">🟢 Neon Shack</button>
+      <button data-v="tube">🟠 Tube Glow</button>
+      <button data-v="ocean">🔵 Maritime</button>
+      <button data-v="candy">🍬 Candy</button>
+    </div>
+    <button class="big" id="sheetDone">👍 Done</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<nav class="tabs">
+  <button data-tab="copy" class="on"><i>🎧</i>Copy</button>
+  <button data-tab="qso"><i>📻</i>QSO</button>
+  <button data-tab="games"><i>⚡</i>Games</button>
+  <button data-tab="key"><i>🔑</i>Key</button>
+  <button data-tab="chart"><i>📖</i>Chart</button>
+  <button data-tab="me"><i>🏆</i>Me</button>
+</nav>
+
+<script src="morse.js?v=1.0.0"></script>
+<script src="app.js?v=1.0.0"></script>
+</body>
+</html>
