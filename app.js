@@ -659,18 +659,14 @@ function micRender() { $("#micText").textContent = micText || "…"; const el = 
 async function micStartListening() {
   const btn = $("#micStart");
   if (!navigator.mediaDevices?.getUserMedia) { toast("🙉 This browser can't use the microphone"); return; }
-  MicDecoder.wpmGuess = S.set.wpm;
+  MicDecoder.wpmGuess = S.set.wpm; micTrace.pts = [];
   try {
     await MicDecoder.start({
-      level: (lv, floor, peak, th) => {
-        const top = Math.max(peak * 1.3, 1e-4);
-        $("#micLevel").style.width = `${Math.min(100, (lv / top) * 100)}%`;
-        $("#micThresh").style.left = `${Math.min(100, (th / top) * 100)}%`;
-      },
+      level: (core) => micTracePush(core),
       tone: (on) => $("#micLed").classList.toggle("on", on),
       freq: (f) => { $("#micFreq").textContent = `🎵 ${Math.round(f)} Hz`; if (!MicDecoder.locked) { $("#micFreqSlider").value = Math.round(f); $("#micFreqVal").textContent = `auto · ${Math.round(f)} Hz`; } },
       elems: (el, wpm) => { $("#micElems").textContent = el.replace(/\./g, "·").replace(/-/g, "–") || "\u00a0"; $("#micWpm").textContent = `⚡ ~${wpm} WPM`; },
-      char: (c) => { micText = (micText + c).replace(/ {2,}/g, " ").slice(-2000); micRender(); },
+      text: (t) => { micText = t; micRender(); },
     });
   } catch (err) {
     toast(err && err.name === "NotAllowedError" ? "🎙️ Mic blocked. Tap aA in Safari's address bar › Website Settings › Microphone › Allow" : `🙉 Couldn't open the microphone (${(err && (err.name || err.message)) || "unknown"})`, 5000);
@@ -682,10 +678,31 @@ async function micStartListening() {
 function micStop() {
   MicDecoder.stop();
   $("#micStart").textContent = "🎙️ Start listening"; $("#micStart").classList.remove("listening");
-  $("#micLevel").style.width = "0";
 }
 $("#micStart").addEventListener("click", () => (MicDecoder.on ? micStop() : micStartListening()));
-$("#micClear").addEventListener("click", () => { micText = ""; micRender(); fx("tick"); });
+$("#micClear").addEventListener("click", () => { micText = ""; MicDecoder.core && MicDecoder.core.clearText(); micRender(); fx("tick"); });
+$("#micSens").addEventListener("input", (e) => { $("#micSensVal").textContent = e.target.value; MicDecoder.setSens(e.target.value / 100); });
+
+// Scrolling picture of what the wolf hears: signal level, the on/off threshold and the keyed tone
+const micTrace = { pts: [], last: 0 };
+function micTracePush(core) {
+  micTrace.pts.push([core.L, core.th ?? core.floor, core.key, core.floor, core.sig]);
+  if (micTrace.pts.length > 1500) micTrace.pts.splice(0, micTrace.pts.length - 1500);
+  $("#micSnr").textContent = `📶 ${Math.max(0, Math.round(core.sig - core.floor))} dB`;
+  const now = performance.now();
+  if (now - micTrace.last < 33) return;
+  micTrace.last = now;
+  const c = $("#micTrace"), w = (c.width = c.clientWidth * devicePixelRatio), h = (c.height = c.clientHeight * devicePixelRatio), x = c.getContext("2d");
+  const pts = micTrace.pts, n = pts.length, step = w / 1500;
+  const [, , , floor, sig] = pts[n - 1];
+  const lo = floor - 6, hi = Math.max(sig + 4, floor + 20), Y = (db) => h - ((Math.min(hi, Math.max(lo, db)) - lo) / (hi - lo)) * h;
+  const css = getComputedStyle(document.body), accent = css.getPropertyValue("--accent").trim(), warn = css.getPropertyValue("--warn").trim();
+  x.globalAlpha = 0.18; x.fillStyle = accent;
+  pts.forEach((p, i) => { if (p[2]) x.fillRect(w - (n - i) * step, 0, step + 1, h); });
+  x.globalAlpha = 1; x.lineWidth = 1.5 * devicePixelRatio;
+  x.strokeStyle = warn; x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo : x.moveTo).call(x, w - (n - i) * step, Y(p[1]))); x.stroke();
+  x.strokeStyle = accent; x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo : x.moveTo).call(x, w - (n - i) * step, Y(p[0]))); x.stroke();
+}
 $("#micCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(micText.trim()); toast("📋 Copied!"); } catch { toast("🙈 Couldn't copy"); } });
 $("#micTest").addEventListener("click", () => {
   const t = pick(["CQ CQ DE W6WLF K", "AWOO AWOO DE WOLF", "TEST DE DL1ABC", "PARIS PARIS", "73 ES GUD DX"]);

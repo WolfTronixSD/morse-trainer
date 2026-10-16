@@ -13,5 +13,5 @@ Open it in Safari, tap **Share → Add to Home Screen**, and it runs full screen
 - 📖 Chart of letters, numbers, prosigns and ham lingo
 - 🏆 XP, ranks, badges, daily streak, themes, Farnsworth, QRN and QSB
 
-Plain static files: `index.html`, `style.css`, `morse.js` (Morse table, sound, generators), `decoder.js` (mic decoder), `app.js` (UI), `sw.js` (offline).
+Plain static files: `index.html`, `style.css`, `morse.js` (Morse table, sound, generators), `dsp.js` (tone filter, runs in an AudioWorklet), `decoder.js` (adaptive mic decoder), `app.js` (UI), `sw.js` (offline).
 Release: bump the `?v=` params in `index.html` and `CACHE` in `sw.js`.

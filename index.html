@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.1.1">
+<link rel="stylesheet" href="style.css?v=1.2.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
@@ -204,12 +204,14 @@
       </div>
       <div id="micPanel" class="hidden">
         <p class="mic-tip">🐺 Hold your phone near a speaker or your rig. The wolf listens and writes down the Morse it hears.</p>
-        <div class="mic-meter"><div id="micLevel"></div><i id="micThresh"></i><div class="led" id="micLed"></div></div>
+        <div class="mic-trace"><canvas id="micTrace"></canvas><div class="led" id="micLed"></div></div>
         <div class="mic-info">
           <span id="micFreq">— Hz</span>
+          <span id="micSnr">— dB</span>
           <span id="micWpm">— WPM</span>
           <label><input type="checkbox" id="micLock"> 🔒 Lock tone</label>
         </div>
+        <div class="row"><label class="lbl">Sensitivity <b id="micSensVal">50</b> · lower it if noise turns into E and T</label><input type="range" id="micSens" min="0" max="100" value="50"></div>
         <div class="row" id="micFreqRow"><label class="lbl">Listen for tone <b id="micFreqVal">auto</b></label><input type="range" id="micFreqSlider" min="300" max="1200" step="10" value="600" disabled></div>
         <div class="key-out mic-out">
           <div class="key-elems" id="micElems"></div>
@@ -263,7 +265,7 @@
     </div>
     <div class="card joke" id="joke"></div>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.1.1 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.2.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
@@ -307,8 +309,9 @@
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.1.1"></script>
-<script src="decoder.js?v=1.1.1"></script>
-<script src="app.js?v=1.1.1"></script>
+<script src="morse.js?v=1.2.0"></script>
+<script src="dsp.js?v=1.2.0"></script>
+<script src="decoder.js?v=1.2.0"></script>
+<script src="app.js?v=1.2.0"></script>
 </body>
 </html>
