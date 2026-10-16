@@ -690,7 +690,7 @@ function micTracePush(core) {
   micTrace.pts.push([core.L, core.th ?? core.floor, core.key, core.floor, core.sig]);
   if (micTrace.pts.length > 1500) micTrace.pts.splice(0, micTrace.pts.length - 1500);
   $("#micSnr").textContent = `📶 ${Math.max(0, Math.round(core.sig - core.floor))} dB`;
-  $("#micDiag").textContent = `${MicDecoder.found ? `🎯 tone ${Math.round(MicDecoder.freq)} Hz` : "🔎 searching for a tone…"} · mic ${Math.round(core.L)} dB · ${MicDecoder.engine}`;
+  $("#micDiag").textContent = `${MicDecoder.found ? `🎯 tone ${Math.round(MicDecoder.freq)} Hz` : "🔎 searching for a tone…"} · ${MicDecoder.silent ? "⚠️ mic sends silence" : `mic ${Math.round(core.L)} dB`} · ${MicDecoder.engine}`;
   const now = performance.now();
   if (now - micTrace.last < 33) return;
   micTrace.last = now;

@@ -213,39 +213,35 @@ const MicDecoder = {
     const core = (this.core = new MorseCore(this.wpmGuess));
     core.sens = this.sens;
     core.cb = cb;
+    const gum = (audio) => navigator.mediaDevices.getUserMedia({ audio });
     try {
       try {
-        this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+        this.stream = await gum({ echoCancellation: false, noiseSuppression: false, autoGainControl: false });
       } catch (err) {
         if (err.name === "NotAllowedError" || err.name === "SecurityError") throw err;
-        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // simplest request as a fallback
+        this.stream = await gum(true); // simplest request as a fallback
       }
-      // A separate audio context for the mic: Safari is happier when it is created after the mic opens.
+      // iPhones differ in which audio context actually receives the mic, so try a few ways
+      // and keep the first one that hears anything other than digital silence.
       const AC = window.AudioContext || window.webkitAudioContext;
-      const ctx = (this.ctx = new AC());
-      if (ctx.state !== "running") await ctx.resume();
-      this.src = ctx.createMediaStreamSource(this.stream);
-      this.an = ctx.createAnalyser(); this.an.fftSize = 8192; this.an.smoothingTimeConstant = 0;
-      this.mute = ctx.createGain(); this.mute.gain.value = 0;
-      this.src.connect(this.an);
-      this.frames = 0;
-      const onFrames = (frames) => { this.frames += frames.length; core.feed(frames); cb.level && cb.level(core); };
-      if (ctx.createScriptProcessor && !this.useWorklet) {
-        // ScriptProcessor: proven on iPhone; a big buffer rides out busy moments on the main thread
-        const dsp = new EnvDSP(ctx.sampleRate), buf = [];
-        this.node = ctx.createScriptProcessor(2048, 1, 1);
-        this.node.onaudioprocess = (e) => { buf.length = 0; dsp.process(e.inputBuffer.getChannelData(0), buf); onFrames(buf); };
-        this.post = (m) => dsp.setFreq(m.freq, m.bw);
-        this.engine = "script";
-      } else {
-        await ctx.audioWorklet.addModule("dsp.js?v=1.2.1");
-        this.node = new AudioWorkletNode(ctx, "cw-env");
-        this.node.port.onmessage = (e) => onFrames(e.data);
-        this.post = (m) => this.node.port.postMessage(m);
-        this.engine = "worklet";
+      const plans = [
+        ["app audio", () => Sound.unlock(), false],
+        ["own audio", () => new AC(), true],
+        ["plain mic", () => Sound.unlock(), false, true],
+      ];
+      this.silent = true;
+      for (const [name, make, own, plain] of plans) {
+        if (plain) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = await gum(true); }
+        const ctx = make();
+        this.setSession("play-and-record");
+        this.ctx = ctx; this.ownCtx = own; this.engine = name;
+        if (ctx.state !== "running") await ctx.resume().catch(() => {});
+        this.build(ctx, core);
+        if (await this.hears(1500)) { this.silent = false; break; }
+        this.teardown();
+        if (own) ctx.close().catch(() => {});
       }
-      this.src.connect(this.node); this.node.connect(this.mute).connect(ctx.destination);
-      this.rate = ctx.sampleRate;
+      if (this.silent) { this.engine = "app audio"; this.ctx = Sound.unlock(); this.ownCtx = false; this.build(this.ctx, core); }
     } catch (err) {
       this.release();
       throw err;
@@ -259,17 +255,49 @@ const MicDecoder = {
     this.on = true;
   },
 
+  build(ctx, core) {
+    this.src = ctx.createMediaStreamSource(this.stream);
+    this.an = ctx.createAnalyser(); this.an.fftSize = 8192; this.an.smoothingTimeConstant = 0;
+    this.mute = ctx.createGain(); this.mute.gain.value = 0;
+    this.rate = ctx.sampleRate;
+    this.frames = 0; this.heard = false;
+    const dsp = new EnvDSP(ctx.sampleRate), buf = [];
+    this.node = ctx.createScriptProcessor(2048, 1, 1);
+    this.node.onaudioprocess = (e) => {
+      const x = e.inputBuffer.getChannelData(0);
+      if (!this.heard) for (let i = 0; i < x.length; i += 7) if (x[i] !== 0) { this.heard = true; break; }
+      buf.length = 0; dsp.process(x, buf);
+      this.frames += buf.length; core.feed(buf); this.cb.level && this.cb.level(core);
+    };
+    this.post = (m) => dsp.setFreq(m.freq, m.bw);
+    this.src.connect(this.an); this.src.connect(this.node);
+    this.node.connect(this.mute).connect(ctx.destination);
+  },
+
+  hears(ms) {
+    return new Promise((done) => {
+      const t0 = Date.now();
+      const check = () => (this.heard ? done(true) : Date.now() - t0 > ms ? done(false) : setTimeout(check, 100));
+      check();
+    });
+  },
+
+  teardown() {
+    try { this.node && this.node.disconnect(); this.src && this.src.disconnect(); this.an && this.an.disconnect(); this.mute && this.mute.disconnect(); } catch {}
+    if (this.node) this.node.onaudioprocess = null;
+    this.node = this.src = this.an = this.mute = this.post = null;
+  },
+
   setFreq(f, bw) { this.freq = f; this.post && this.post({ freq: f, bw }); },
   lockTo(f) { this.found = true; this.setFreq(f, 110); },
   setSens(s) { this.sens = s; if (this.core) this.core.sens = s; },
   setSession(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch {} },
 
   release() {
-    try { this.node && this.node.disconnect(); this.src && this.src.disconnect(); this.an && this.an.disconnect(); } catch {}
-    if (this.node && this.node.port) this.node.port.onmessage = null;
+    this.teardown();
     if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
-    if (this.ctx) this.ctx.close().catch(() => {});
-    this.stream = this.ctx = this.node = this.src = this.an = this.post = null;
+    if (this.ctx && this.ownCtx) this.ctx.close().catch(() => {});
+    this.stream = this.ctx = null;
     this.setSession("playback");
   },
 
