@@ -1,7 +1,7 @@
 // Dit Dah Dojo service worker: works fully offline once opened.
-const CACHE = "ditdahdojo-1.0.0";
-const FILES = ["./", "index.html", "style.css?v=1.0.0", "morse.js?v=1.0.0", "app.js?v=1.0.0", "manifest.webmanifest",
-  "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
+const CACHE = "ditdahdojo-1.1.0";
+const FILES = ["./", "index.html", "style.css?v=1.1.0", "morse.js?v=1.1.0", "decoder.js?v=1.1.0", "app.js?v=1.1.0", "manifest.webmanifest",
+  "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png", "icons/logo-96.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

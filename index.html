@@ -13,14 +13,14 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.0.0">
+<link rel="stylesheet" href="style.css?v=1.1.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
 
 <header class="top">
   <div class="brand">
-    <div class="logo" aria-hidden="true"><span></span><span class="dah"></span><span></span></div>
+    <img class="logo-img" src="icons/logo-96.png" alt="" id="wolfLogo">
     <div>
       <h1>Dit Dah Dojo</h1>
       <div class="rank" id="rankTitle">Lid in Training</div>
@@ -178,9 +178,11 @@
   <section class="tab" id="tab-key">
     <div class="card">
       <div class="seg" id="keyType">
-        <button data-v="straight" class="on">Straight key</button>
-        <button data-v="paddle">Paddles</button>
+        <button data-v="straight" class="on">🔑 Key</button>
+        <button data-v="paddle">🏓 Paddles</button>
+        <button data-v="mic">🎙️ Mic</button>
       </div>
+      <div id="keyPanel">
       <div class="challenge">
         <span>Send this:</span> <b id="keyTarget">—</b>
         <button class="ghost tiny" id="keyNewTarget">🎯 New</button>
@@ -199,6 +201,27 @@
         <button class="paddle" id="pdDah">—<small>DAH</small></button>
       </div>
       <button class="ghost" id="keyClear">🧽 Clear</button>
+      </div>
+      <div id="micPanel" class="hidden">
+        <p class="mic-tip">🐺 Hold your phone near a speaker or your rig. The wolf listens and writes down the Morse it hears.</p>
+        <div class="mic-meter"><div id="micLevel"></div><i id="micThresh"></i><div class="led" id="micLed"></div></div>
+        <div class="mic-info">
+          <span id="micFreq">— Hz</span>
+          <span id="micWpm">— WPM</span>
+          <label><input type="checkbox" id="micLock"> 🔒 Lock tone</label>
+        </div>
+        <div class="row" id="micFreqRow"><label class="lbl">Listen for tone <b id="micFreqVal">auto</b></label><input type="range" id="micFreqSlider" min="300" max="1200" step="10" value="600" disabled></div>
+        <div class="key-out mic-out">
+          <div class="key-elems" id="micElems"></div>
+          <div class="key-text" id="micText"></div>
+        </div>
+        <button class="big" id="micStart">🎙️ Start listening</button>
+        <div class="sub-controls">
+          <button class="ghost" id="micTest">🔊 Test signal</button>
+          <button class="ghost" id="micCopy">📋 Copy text</button>
+          <button class="ghost" id="micClear">🧽 Clear</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -240,7 +263,7 @@
     </div>
     <div class="card joke" id="joke"></div>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.0.0 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.1.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
@@ -260,6 +283,7 @@
       <label><input type="checkbox" id="sfx" checked> 🎺 Fun sound effects</label>
       <label><input type="checkbox" id="speak"> 🤖 Robot reads answers</label>
       <label><input type="checkbox" id="vvv" checked> 📣 Start with "VVV"</label>
+      <label><input type="checkbox" id="haptic" checked> 📳 Haptic feedback</label>
     </div>
     <label class="lbl">Theme</label>
     <div class="pills" id="themes">
@@ -283,7 +307,8 @@
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.0.0"></script>
-<script src="app.js?v=1.0.0"></script>
+<script src="morse.js?v=1.1.0"></script>
+<script src="decoder.js?v=1.1.0"></script>
+<script src="app.js?v=1.1.0"></script>
 </body>
 </html>

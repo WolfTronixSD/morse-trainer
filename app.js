@@ -7,7 +7,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 /* ---------- saved state ---------- */
 const KEY = "ditdahdojo-v1";
 const DEFAULTS = {
-  set: { wpm: 20, fw: 20, tone: 600, vol: 70, qrn: 0, qsb: false, sfx: true, speak: false, vvv: true, theme: "neon" },
+  set: { wpm: 20, fw: 20, tone: 600, vol: 70, qrn: 0, qsb: false, sfx: true, speak: false, vvv: true, haptic: true, theme: "neon" },
   copy: { mode: "groups", chars: "letters", koch: 2, size: 5, count: 10, custom: "CQ CQ DE DL1ABC K" },
   xp: 0, streak: 0, lastDay: "",
   stats: { sessions: 0, chars: 0, perfect: 0, qsos: 0, qsoPerfect: 0, sends: 0, history: [], rxBest: 0, spBest: 0, maxWpm: 0 },
@@ -51,7 +51,26 @@ function toast(msg, ms = 1800) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
   clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), ms);
 }
-function fx(kind) { if (S.set.sfx) Sound.fx(kind); }
+function fx(kind) { if (S.set.sfx) Sound.fx(kind); buzz(kind === "bad" ? 2 : kind === "level" ? 3 : 1); }
+
+// Haptics: Android has navigator.vibrate; iPhone Safari (iOS 18+) gives a tick when a switch control toggles.
+const buzz = (() => {
+  let lbl;
+  const tick = () => {
+    if (!lbl) {
+      const id = "hapticSwitch";
+      const inp = document.createElement("input"); inp.type = "checkbox"; inp.setAttribute("switch", ""); inp.id = id;
+      lbl = document.createElement("label"); lbl.htmlFor = id;
+      for (const el of [inp, lbl]) { el.style.cssText = "position:fixed;left:-99px;top:0;width:1px;height:1px;opacity:0;pointer-events:none"; el.setAttribute("aria-hidden", "true"); document.body.appendChild(el); }
+    }
+    lbl.click();
+  };
+  return (times = 1) => {
+    if (!S.set.haptic) return;
+    if (navigator.vibrate) { navigator.vibrate(times === 1 ? 15 : Array.from({ length: times * 2 - 1 }, (_, i) => (i % 2 ? 60 : 25))); return; }
+    for (let i = 0; i < times; i++) setTimeout(tick, i * 110);
+  };
+})();
 function speak(text) {
   if (!S.set.speak || !window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; u.pitch = 0.8;
@@ -107,7 +126,7 @@ function addXp(n) {
   const after = levelOf(S.xp);
   if (after > before) {
     const [t, e] = titleOf(after);
-    setTimeout(() => { fx("level"); Confetti(160, e); toast(`${e} LEVEL UP! You are now a ${t}`, 3000); }, 700);
+    setTimeout(() => { fx("level"); howl(); Confetti(160, e); toast(`${e} LEVEL UP! You are now a ${t}`, 3000); }, 700);
   }
   checkBadges(); save(); renderHeader();
 }
@@ -213,7 +232,7 @@ function makePlayer(root, { getText, render, prefix = () => "" }) {
   root.addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const a = b.dataset.act;
-    if (a === "play") play();
+    if (a === "play") { buzz(); play(); }
     else if (a === "slower" || a === "faster") {
       changeWpm(a === "faster" ? 2 : -2);
       if (job) { stop(); play(); }
@@ -531,7 +550,7 @@ function keyAddElem(e) { K.elems += e; if (K.elems.length > 8) K.elems = K.elems
 const sk = $("#skBtn");
 const skDown = (e) => {
   e.preventDefault(); if (K.down) return;
-  K.down = true; K.lastDown = performance.now(); sk.classList.add("down");
+  K.down = true; K.lastDown = performance.now(); sk.classList.add("down"); buzz();
   clearTimeout(K.gapT); clearTimeout(K.wordT); Sound.keyDown();
 };
 const skUp = (e) => {
@@ -562,7 +581,7 @@ function paddleLoop() {
 }
 for (const [id, k] of [["#pdDit", "dit"], ["#pdDah", "dah"]]) {
   const b = $(id);
-  b.addEventListener("pointerdown", (e) => { e.preventDefault(); P[k] = true; b.classList.add("down"); Sound.unlock(); paddleLoop(); });
+  b.addEventListener("pointerdown", (e) => { e.preventDefault(); P[k] = true; b.classList.add("down"); buzz(); Sound.unlock(); paddleLoop(); });
   const up = (e) => { e.preventDefault(); P[k] = false; b.classList.remove("down"); };
   b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("pointerleave", up);
   b.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -570,6 +589,8 @@ for (const [id, k] of [["#pdDit", "dit"], ["#pdDah", "dah"]]) {
 seg("#keyType", (v) => {
   K.type = v; $$("#keyType button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
   $("#straightKey").classList.toggle("hidden", v !== "straight"); $("#paddleKey").classList.toggle("hidden", v !== "paddle");
+  $("#keyPanel").classList.toggle("hidden", v === "mic"); $("#micPanel").classList.toggle("hidden", v !== "mic");
+  if (v !== "mic" && MicDecoder.on) micStop();
 });
 $("#keyClear").addEventListener("click", () => { K.text = ""; K.elems = ""; keyRender(); });
 $("#keyNewTarget").addEventListener("click", () => { fx("tick"); keyNewTarget(); });
@@ -632,6 +653,64 @@ $("#resetAll").addEventListener("click", () => {
   const set = S.set; S = JSON.parse(JSON.stringify(DEFAULTS)); S.set = set; save(); renderHeader(); renderMe(); syncCopyUi(); toast("🧹 Fresh start. Every legend was a lid once!");
 });
 
+/* ---------- KEY tab: mic decoder ---------- */
+let micText = "";
+function micRender() { $("#micText").textContent = micText || "…"; const el = $("#micText"); el.scrollTop = el.scrollHeight; }
+async function micStartListening() {
+  const btn = $("#micStart");
+  if (!navigator.mediaDevices?.getUserMedia) { toast("🙉 This browser can't use the microphone"); return; }
+  MicDecoder.wpmGuess = S.set.wpm;
+  try {
+    await MicDecoder.start({
+      level: (lv, floor, peak, th) => {
+        const top = Math.max(peak * 1.3, 1e-4);
+        $("#micLevel").style.width = `${Math.min(100, (lv / top) * 100)}%`;
+        $("#micThresh").style.left = `${Math.min(100, (th / top) * 100)}%`;
+      },
+      tone: (on) => $("#micLed").classList.toggle("on", on),
+      freq: (f) => { $("#micFreq").textContent = `🎵 ${Math.round(f)} Hz`; if (!MicDecoder.locked) { $("#micFreqSlider").value = Math.round(f); $("#micFreqVal").textContent = `auto · ${Math.round(f)} Hz`; } },
+      elems: (el, wpm) => { $("#micElems").textContent = el.replace(/\./g, "·").replace(/-/g, "–") || "\u00a0"; $("#micWpm").textContent = `⚡ ~${wpm} WPM`; },
+      char: (c) => { micText = (micText + c).replace(/ {2,}/g, " ").slice(-2000); micRender(); },
+    });
+  } catch (err) {
+    toast(err && err.name === "NotAllowedError" ? "🎙️ Mic blocked. Allow it in Settings › Safari › Microphone" : "🙉 Couldn't open the microphone", 3500);
+    return;
+  }
+  btn.textContent = "⏹ Stop listening"; btn.classList.add("listening"); buzz();
+  howl();
+}
+function micStop() {
+  MicDecoder.stop();
+  $("#micStart").textContent = "🎙️ Start listening"; $("#micStart").classList.remove("listening");
+  $("#micLevel").style.width = "0";
+}
+$("#micStart").addEventListener("click", () => (MicDecoder.on ? micStop() : micStartListening()));
+$("#micClear").addEventListener("click", () => { micText = ""; micRender(); fx("tick"); });
+$("#micCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(micText.trim()); toast("📋 Copied!"); } catch { toast("🙈 Couldn't copy"); } });
+$("#micTest").addEventListener("click", () => {
+  const t = pick(["CQ CQ DE W6WLF K", "AWOO AWOO DE WOLF", "TEST DE DL1ABC", "PARIS PARIS", "73 ES GUD DX"]);
+  Sound.play(t);
+  toast(`🔊 Sending "${t}". Watch the wolf copy it!`, 2500);
+});
+$("#micLock").addEventListener("change", (e) => {
+  MicDecoder.locked = e.target.checked;
+  $("#micFreqSlider").disabled = !e.target.checked;
+  $("#micFreqVal").textContent = e.target.checked ? `${$("#micFreqSlider").value} Hz` : "auto";
+});
+$("#micFreqSlider").addEventListener("input", (e) => {
+  MicDecoder.freq = +e.target.value;
+  $("#micFreqVal").textContent = `${e.target.value} Hz`; $("#micFreq").textContent = `🎵 ${e.target.value} Hz`;
+});
+micRender();
+
+/* ---------- the wolf ---------- */
+function howl() { const w = $("#wolfLogo"); w.classList.remove("howl"); void w.offsetWidth; w.classList.add("howl"); }
+$("#wolfLogo").addEventListener("click", () => {
+  howl(); buzz(2);
+  Sound.play("AWOO", { wpm: 25, fw: 25 });
+  toast(pick(["🐺 AWOOOO! (that's ·– ·–– ––– ––– in wolf)", "🐺 The wolf says 73!", "🐺 Grrr... QRM!", "🐺 Who let the dits out?", "🐺 Wolf's fist: 100% organic", "🐺 Howl-o-meter: 599 +20 dB"]));
+});
+
 /* ---------- settings sheet ---------- */
 function openSheet() { $("#sheet").classList.add("open"); $("#sheetBack").classList.remove("hidden"); }
 function closeSheet() { $("#sheet").classList.remove("open"); $("#sheetBack").classList.add("hidden"); }
@@ -642,7 +721,7 @@ $("#sheetDone").addEventListener("click", closeSheet);
 function syncSettings() {
   const s = S.set;
   for (const [id, v] of [["wpm", s.wpm], ["fw", s.fw], ["tone", s.tone], ["vol", s.vol], ["qrn", s.qrn]]) { $("#" + id).value = v; $(`#${id === "vol" ? "vol" : id}Val`).textContent = v; }
-  for (const id of ["qsb", "sfx", "speak", "vvv"]) $("#" + id).checked = s[id];
+  for (const id of ["qsb", "sfx", "speak", "vvv", "haptic"]) $("#" + id).checked = s[id];
   $$("#themes button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.theme));
   document.body.dataset.theme = s.theme;
   Object.assign(Sound.opts, { wpm: s.wpm, fw: Math.min(s.fw, s.wpm), tone: s.tone, vol: s.vol / 100, qrn: s.qrn / 100, qsb: s.qsb });
@@ -660,7 +739,7 @@ for (const id of ["wpm", "fw", "tone", "vol", "qrn"]) {
 }
 $("#tone").addEventListener("change", () => Sound.play("E", { wpm: 15 }));
 $("#wpm").addEventListener("change", () => Sound.play("PARIS"));
-for (const id of ["qsb", "sfx", "speak", "vvv"]) $("#" + id).addEventListener("change", (e) => { S.set[id] = e.target.checked; save(); syncSettings(); if (id === "speak" && e.target.checked) { S.set.speak = true; speak("Robot announcer online. Seventy three!"); } });
+for (const id of ["qsb", "sfx", "speak", "vvv", "haptic"]) $("#" + id).addEventListener("change", (e) => { S.set[id] = e.target.checked; save(); syncSettings(); if (id === "speak" && e.target.checked) { S.set.speak = true; speak("Robot announcer online. Seventy three!"); } if (id === "haptic" && e.target.checked) buzz(2); });
 seg("#themes", (v) => { S.set.theme = v; save(); syncSettings(); Confetti(40); });
 
 /* ---------- tabs, install hint, share ---------- */
@@ -670,7 +749,7 @@ $(".tabs").addEventListener("click", (e) => {
   $$(".tab").forEach((t) => t.classList.toggle("active", t.id === "tab-" + b.dataset.tab));
   copyPlayer.stop(); qsoPlayer.stop(); if (RX.on) rxStop("Paused. Tap Start for a fresh round.");
   if (SP.on) { SP.on = false; $("#spGo").textContent = "🏁 Start"; $("#spMsg").textContent = "Sprint stopped. Tap Start to try again."; }
-  Sound.stop(); fx("tick");
+  Sound.stop(); fx("tick"); if (MicDecoder.on) micStop();
   if (b.dataset.tab === "me") renderMe();
   scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -686,7 +765,7 @@ const standalone = navigator.standalone || matchMedia("(display-mode: standalone
 if (isIos && !standalone && !localStorage.getItem("ddd-nohint")) $("#installHint").classList.remove("hidden");
 $$("[data-close]").forEach((b) => b.addEventListener("click", () => { $("#" + b.dataset.close).classList.add("hidden"); try { localStorage.setItem("ddd-nohint", "1"); } catch {} }));
 document.addEventListener("pointerdown", () => Sound.unlock(), { once: true });
-document.addEventListener("visibilitychange", () => { if (document.hidden) { copyPlayer.stop(); qsoPlayer.stop(); Sound.keyUp(); } });
+document.addEventListener("visibilitychange", () => { if (document.hidden) { copyPlayer.stop(); qsoPlayer.stop(); Sound.keyUp(); if (MicDecoder.on) micStop(); } });
 
 /* ---------- go ---------- */
 syncSettings(); syncCopyUi(); newCopyText(); newQso(); rxPad(); rxHud(); spHud(); keyNewTarget(); renderChart("letters"); renderHeader();
