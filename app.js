@@ -660,6 +660,7 @@ async function micStartListening() {
   const btn = $("#micStart");
   if (!navigator.mediaDevices?.getUserMedia) { toast("🙉 This browser can't use the microphone"); return; }
   MicDecoder.wpmGuess = S.set.wpm; micTrace.pts = [];
+  if (!MicDecoder.locked) MicDecoder.freq = S.set.tone;
   try {
     await MicDecoder.start({
       level: (core) => micTracePush(core),
@@ -689,6 +690,7 @@ function micTracePush(core) {
   micTrace.pts.push([core.L, core.th ?? core.floor, core.key, core.floor, core.sig]);
   if (micTrace.pts.length > 1500) micTrace.pts.splice(0, micTrace.pts.length - 1500);
   $("#micSnr").textContent = `📶 ${Math.max(0, Math.round(core.sig - core.floor))} dB`;
+  $("#micDiag").textContent = `${MicDecoder.found ? `🎯 tone ${Math.round(MicDecoder.freq)} Hz` : "🔎 searching for a tone…"} · mic ${Math.round(core.L)} dB · ${MicDecoder.engine}`;
   const now = performance.now();
   if (now - micTrace.last < 33) return;
   micTrace.last = now;
@@ -711,11 +713,12 @@ $("#micTest").addEventListener("click", () => {
 });
 $("#micLock").addEventListener("change", (e) => {
   MicDecoder.locked = e.target.checked;
+  if (e.target.checked) MicDecoder.lockTo(+$("#micFreqSlider").value);
   $("#micFreqSlider").disabled = !e.target.checked;
   $("#micFreqVal").textContent = e.target.checked ? `${$("#micFreqSlider").value} Hz` : "auto";
 });
 $("#micFreqSlider").addEventListener("input", (e) => {
-  MicDecoder.freq = +e.target.value;
+  MicDecoder.lockTo(+e.target.value);
   $("#micFreqVal").textContent = `${e.target.value} Hz`; $("#micFreq").textContent = `🎵 ${e.target.value} Hz`;
 });
 micRender();

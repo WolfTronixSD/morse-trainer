@@ -228,18 +228,21 @@ const MicDecoder = {
       this.an = ctx.createAnalyser(); this.an.fftSize = 8192; this.an.smoothingTimeConstant = 0;
       this.mute = ctx.createGain(); this.mute.gain.value = 0;
       this.src.connect(this.an);
-      const onFrames = (frames) => { core.feed(frames); cb.level && cb.level(core); };
-      try {
-        await ctx.audioWorklet.addModule("dsp.js?v=1.2.0");
+      this.frames = 0;
+      const onFrames = (frames) => { this.frames += frames.length; core.feed(frames); cb.level && cb.level(core); };
+      if (ctx.createScriptProcessor && !this.useWorklet) {
+        // ScriptProcessor: proven on iPhone; a big buffer rides out busy moments on the main thread
+        const dsp = new EnvDSP(ctx.sampleRate), buf = [];
+        this.node = ctx.createScriptProcessor(2048, 1, 1);
+        this.node.onaudioprocess = (e) => { buf.length = 0; dsp.process(e.inputBuffer.getChannelData(0), buf); onFrames(buf); };
+        this.post = (m) => dsp.setFreq(m.freq, m.bw);
+        this.engine = "script";
+      } else {
+        await ctx.audioWorklet.addModule("dsp.js?v=1.2.1");
         this.node = new AudioWorkletNode(ctx, "cw-env");
         this.node.port.onmessage = (e) => onFrames(e.data);
         this.post = (m) => this.node.port.postMessage(m);
-      } catch {
-        // older Safari: same filter on the main thread
-        const dsp = new EnvDSP(ctx.sampleRate), buf = [];
-        this.node = ctx.createScriptProcessor(1024, 1, 1);
-        this.node.onaudioprocess = (e) => { buf.length = 0; dsp.process(e.inputBuffer.getChannelData(0), buf); onFrames(buf); };
-        this.post = (m) => dsp.setFreq(m.freq, m.bw);
+        this.engine = "worklet";
       }
       this.src.connect(this.node); this.node.connect(this.mute).connect(ctx.destination);
       this.rate = ctx.sampleRate;
@@ -247,14 +250,17 @@ const MicDecoder = {
       this.release();
       throw err;
     }
-    this.setFreq(this.freq);
+    // listen wide until the tone is found, then narrow in on it
+    this.found = this.locked;
+    this.setFreq(this.freq, this.locked ? 110 : 350);
     this.spec = new Float32Array(this.an.frequencyBinCount);
     this.avg = null; this.candF = 0; this.candN = 0;
     this.freqTimer = setInterval(() => this.trackFreq(), 120);
     this.on = true;
   },
 
-  setFreq(f) { this.freq = f; this.post && this.post({ freq: f }); },
+  setFreq(f, bw) { this.freq = f; this.post && this.post({ freq: f, bw }); },
+  lockTo(f) { this.found = true; this.setFreq(f, 110); },
   setSens(s) { this.sens = s; if (this.core) this.core.sens = s; },
   setSession(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch {} },
 
@@ -287,13 +293,13 @@ const MicDecoder = {
     for (let i = lo; i <= hi; i++) if (this.avg[i] > this.avg[best]) best = i;
     const db = (i) => 10 * Math.log10(this.avg[i] + 1e-20);
     const band = []; for (let i = lo; i <= hi; i++) band.push(db(i));
-    if (db(best) - median(band) < 15) return;
+    if (db(best) - median(band) < 10) return;
     const a = db(best - 1), b = db(best), c = db(best + 1);
     const f = (best + (0.5 * (a - c)) / (a - 2 * b + c || 1)) * hz;
     if (Math.abs(f - this.freq) > 25) {
       // only jump to a new tone once it has been the strongest for a moment
       if (Math.abs(f - this.candF) < 25) this.candN++; else { this.candF = f; this.candN = 1; }
-      if (this.candN >= 3) { this.setFreq(f); this.candN = 0; this.cb.freq && this.cb.freq(f); }
+      if (this.candN >= 3 || (!this.found && this.candN >= 2)) { this.found = true; this.setFreq(f, 110); this.candN = 0; this.cb.freq && this.cb.freq(f); }
     } else if (Math.abs(f - this.freq) > 2) { this.setFreq(this.freq * 0.7 + f * 0.3); this.cb.freq && this.cb.freq(this.freq); }
   },
 };

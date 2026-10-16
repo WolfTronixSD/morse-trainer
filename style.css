@@ -236,3 +236,4 @@ input[type=range]:disabled { opacity: .4; }
 .mic-trace { position: relative; height: 96px; border-radius: 14px; background: rgba(0,0,0,.4); border: 1px solid var(--line); overflow: hidden; }
 .mic-trace canvas { width: 100%; height: 100%; display: block; }
 .mic-trace .led { top: 8px; right: 8px; }
+.mic-diag { font-size: .78rem; color: var(--muted); margin: -2px 0 4px; }
