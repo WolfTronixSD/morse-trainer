@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.2.2">
+<link rel="stylesheet" href="style.css?v=1.3.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
@@ -242,6 +242,79 @@
     </div>
   </section>
 
+  <!-- ===== SLEEP ===== -->
+  <section class="tab" id="tab-sleep">
+    <div class="card intro">
+      <h2>🌙 Sleepy Morse</h2>
+      <p>Lie back, put the phone on the charger and let easy sentences drift by in Morse. A calm primer, soft waves, then gentle Morse that slows down as you get drowsy, and a timer that fades it all out.</p>
+      <button class="big" id="slStart">🌙 Start sleep session</button>
+    </div>
+    <div class="card">
+      <h3>📰 What to listen to</h3>
+      <div class="pills" id="slSource">
+        <button data-v="ham">📻 Ham news</button>
+        <button data-v="world">🌍 World news</button>
+        <button data-v="science">🔬 Science</button>
+        <button data-v="tech">💻 Tech</button>
+        <button data-v="sports">⚽ Sports</button>
+        <button data-v="wiki">📚 Wikipedia</button>
+        <button data-v="fables">🦊 Bedtime fables</button>
+        <button data-v="qso">💬 QSOs</button>
+        <button data-v="custom">✍️ My text</button>
+      </div>
+      <div class="row hidden" id="slCustomRow"><textarea id="slCustom" rows="4" placeholder="Paste any text you like…"></textarea></div>
+      <label class="lbl">Text style</label>
+      <div class="pills" id="slLevel">
+        <button data-v="true">🐣 Easy (letters only)</button>
+        <button data-v="false">🦉 Normal (numbers, . , ?)</button>
+      </div>
+      <button class="ghost" id="slPreview">👂 Preview a sentence</button>
+      <p class="sl-preview" id="slPreviewText"></p>
+    </div>
+    <div class="card">
+      <h3>⏰ Sleep timer</h3>
+      <div class="pills" id="slTimer">
+        <button data-v="15">15 min</button><button data-v="30">30 min</button><button data-v="45">45 min</button>
+        <button data-v="60">1 h</button><button data-v="90">1½ h</button><button data-v="0">∞ Off</button>
+      </div>
+      <p class="hint">The last 3 minutes fade out slowly so nothing wakes you.</p>
+    </div>
+    <div class="card">
+      <h3>🧘 Relax primer</h3>
+      <div class="pills" id="slPrimer">
+        <button data-v="0">None</button><button data-v="5">5 min</button><button data-v="10">10 min</button><button data-v="15">15 min</button>
+      </div>
+      <div id="slWaveRow">
+        <label class="lbl">Binaural beat (needs headphones 🎧)</label>
+        <div class="pills" id="slWave">
+          <button data-v="alpha">😌 Alpha 10 Hz</button><button data-v="theta">🌀 Theta 6 Hz</button><button data-v="delta">💤 Delta 2.5 Hz</button>
+        </div>
+        <div class="row"><label class="lbl">Beat volume <b id="slBeatVolVal">35</b>%</label><input type="range" id="slBeatVol" min="0" max="100" value="35"></div>
+      </div>
+      <div class="toggles"><label><input type="checkbox" id="slBeatsUnder"> 🌀 Keep a soft beat under the Morse</label></div>
+    </div>
+    <div class="card">
+      <h3>🌊 Ambience</h3>
+      <div class="pills" id="slAmb">
+        <button data-v="none">🔇 None</button><button data-v="ocean">🌊 Ocean</button><button data-v="rain">🌧️ Rain</button><button data-v="fire">🔥 Campfire</button><button data-v="space">🌌 Deep space</button>
+      </div>
+      <div class="row"><label class="lbl">Ambience volume <b id="slAmbVolVal">35</b>%</label><input type="range" id="slAmbVol" min="0" max="100" value="35"></div>
+    </div>
+    <div class="card">
+      <h3>📡 Morse</h3>
+      <div class="row"><label class="lbl">Character speed <b id="slWpmVal">18</b> WPM</label><input type="range" id="slWpm" min="5" max="40" value="18"></div>
+      <div class="row"><label class="lbl">Effective speed <b id="slFwVal">10</b> WPM</label><input type="range" id="slFw" min="3" max="40" value="10"></div>
+      <div class="row"><label class="lbl">Tone <b id="slPitchVal">550</b> Hz</label><input type="range" id="slPitch" min="300" max="900" step="10" value="550"></div>
+      <div class="row"><label class="lbl">Morse volume <b id="slVolVal">60</b>%</label><input type="range" id="slVol" min="0" max="100" value="60"></div>
+      <div class="toggles">
+        <label><input type="checkbox" id="slDrift"> 🐢 Drift slower as I fall asleep</label>
+        <label><input type="checkbox" id="slEcho"> 🗣️ Whisper each sentence after the Morse</label>
+        <label><input type="checkbox" id="slShow"> 👀 Show the text on the night screen</label>
+      </div>
+    </div>
+    <p class="hint">💡 Keep this screen open: the night screen stays on, very dark, and iPhone stops web audio when locked. Plug in the charger. Tap the night screen to make it even darker.</p>
+  </section>
+
   <!-- ===== ME ===== -->
   <section class="tab" id="tab-me">
     <div class="card me-head">
@@ -266,7 +339,7 @@
     </div>
     <div class="card joke" id="joke"></div>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.2.2 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.3.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
@@ -301,18 +374,29 @@
 
 <div id="toast" class="toast"></div>
 
+<div id="night" class="hidden">
+  <div class="n-top"><span id="nClock"></span><span id="nLeft"></span></div>
+  <div class="n-moon"><div class="n-breath"></div><div class="n-wolf">🐺</div></div>
+  <div id="nPhase"></div>
+  <div id="nText"></div>
+  <div class="n-btns"><button id="nEye">👀</button><button id="nPause">⏸</button><button id="nStop">⏹ Stop</button></div>
+  <div class="n-hint">tap anywhere to dim</div>
+</div>
+
 <nav class="tabs">
   <button data-tab="copy" class="on"><i>🎧</i>Copy</button>
   <button data-tab="qso"><i>📻</i>QSO</button>
   <button data-tab="games"><i>⚡</i>Games</button>
   <button data-tab="key"><i>🔑</i>Key</button>
   <button data-tab="chart"><i>📖</i>Chart</button>
+  <button data-tab="sleep"><i>🌙</i>Sleep</button>
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.2.2"></script>
-<script src="dsp.js?v=1.2.2"></script>
-<script src="decoder.js?v=1.2.2"></script>
-<script src="app.js?v=1.2.2"></script>
+<script src="morse.js?v=1.3.0"></script>
+<script src="dsp.js?v=1.3.0"></script>
+<script src="decoder.js?v=1.3.0"></script>
+<script src="app.js?v=1.3.0"></script>
+<script src="sleep.js?v=1.3.0"></script>
 </body>
 </html>

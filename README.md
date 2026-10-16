@@ -10,6 +10,7 @@ Open it in Safari, tap **Share → Add to Home Screen**, and it runs full screen
 - 🔑 Straight key and iambic paddles with live decoding
 - 🎙️ Mic decoder: hold the phone near a rig or speaker and it decodes the Morse it hears
 - 🐺 Wolf mascot (tap it) and haptic feedback on iPhone (iOS 18+) and Android
+- 🌙 Sleep mode: easy news, Wikipedia or bedtime fables in slow Morse with a sleep timer and fade out, an optional binaural relax primer (alpha, theta, delta), ocean, rain, fire or space sounds, and a dark night screen
 - 📖 Chart of letters, numbers, prosigns and ham lingo
 - 🏆 XP, ranks, badges, daily streak, themes, Farnsworth, QRN and QSB
 
