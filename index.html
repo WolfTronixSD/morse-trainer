@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.3.0">
+<link rel="stylesheet" href="style.css?v=1.4.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
@@ -339,7 +339,7 @@
     </div>
     <div class="card joke" id="joke"></div>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.3.0 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.4.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
@@ -368,6 +368,15 @@
       <button data-v="ocean">🔵 Maritime</button>
       <button data-v="candy">🍬 Candy</button>
     </div>
+    <h3>👁️ Signal display</h3>
+    <p class="hint">Tap any display to switch quickly.</p>
+    <div class="pills" id="vizModes"></div>
+    <label class="lbl">Signal color</label>
+    <div class="swatches" id="vizColors"></div>
+    <div class="toggles">
+      <label><input type="checkbox" id="vizFlash"> ⚡ Flash the whole screen (bright flashing light)</label>
+      <label><input type="checkbox" id="vizMute"> 💡 Light only: mute the beep and read the blinks</label>
+    </div>
     <button class="big" id="sheetDone">👍 Done</button>
   </div>
 </div>
@@ -393,10 +402,11 @@
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.3.0"></script>
-<script src="dsp.js?v=1.3.0"></script>
-<script src="decoder.js?v=1.3.0"></script>
-<script src="app.js?v=1.3.0"></script>
-<script src="sleep.js?v=1.3.0"></script>
+<script src="morse.js?v=1.4.0"></script>
+<script src="dsp.js?v=1.4.0"></script>
+<script src="decoder.js?v=1.4.0"></script>
+<script src="app.js?v=1.4.0"></script>
+<script src="viz.js?v=1.4.0"></script>
+<script src="sleep.js?v=1.4.0"></script>
 </body>
 </html>

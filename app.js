@@ -7,7 +7,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 /* ---------- saved state ---------- */
 const KEY = "ditdahdojo-v1";
 const DEFAULTS = {
-  set: { wpm: 20, fw: 20, tone: 600, vol: 70, qrn: 0, qsb: false, sfx: true, speak: false, vvv: true, haptic: true, theme: "neon" },
+  set: { wpm: 20, fw: 20, tone: 600, vol: 70, qrn: 0, qsb: false, sfx: true, speak: false, vvv: true, haptic: true, theme: "neon", viz: "scope", vizColor: "", vizFlash: false, vizMute: false },
   copy: { mode: "groups", chars: "letters", koch: 2, size: 5, count: 10, custom: "CQ CQ DE DL1ABC K" },
   xp: 0, streak: 0, lastDay: "",
   stats: { sessions: 0, chars: 0, perfect: 0, qsos: 0, qsoPerfect: 0, sends: 0, history: [], rxBest: 0, spBest: 0, maxWpm: 0 },
@@ -173,38 +173,7 @@ function renderHeader() {
   $("#speedChip").textContent = s.fw < s.wpm ? `${s.wpm}/${s.fw} WPM` : `${s.wpm} WPM`;
 }
 
-/* ---------- oscilloscope ---------- */
-const Scope = (() => {
-  let buf;
-  const draw = () => {
-    requestAnimationFrame(draw);
-    const cvs = $$(".tab.active .scope");
-    if (!cvs.length) return;
-    const an = Sound.analyser;
-    if (an && !buf) buf = new Float32Array(an.fftSize);
-    if (an) an.getFloatTimeDomainData(buf);
-    const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#4dffb0";
-    const tm = performance.now() / 1000;
-    for (const c of cvs) {
-      const w = (c.width = c.clientWidth * devicePixelRatio), h = (c.height = c.clientHeight * devicePixelRatio);
-      const x = c.getContext("2d");
-      x.strokeStyle = "rgba(255,255,255,.07)"; x.lineWidth = 1;
-      for (let i = 1; i < 6; i++) { x.beginPath(); x.moveTo((w * i) / 6, 0); x.lineTo((w * i) / 6, h); x.stroke(); }
-      x.beginPath(); x.moveTo(0, h / 2); x.lineTo(w, h / 2); x.stroke();
-      x.strokeStyle = accent; x.lineWidth = 2.5 * devicePixelRatio; x.shadowColor = accent; x.shadowBlur = 12;
-      x.beginPath();
-      const n = 512;
-      for (let i = 0; i < n; i++) {
-        const v = an ? buf[i] : 0;
-        const idle = Math.sin(i / 18 + tm * 3) * 0.015;
-        const y = h / 2 - (v * 1.4 + idle) * h * 0.45;
-        i ? x.lineTo((i / n) * w, y) : x.moveTo(0, y);
-      }
-      x.stroke();
-    }
-  };
-  requestAnimationFrame(draw);
-})();
+/* ---------- signal display: see viz.js ---------- */
 
 /* ---------- reusable player ---------- */
 function makePlayer(root, { getText, render, prefix = () => "" }) {

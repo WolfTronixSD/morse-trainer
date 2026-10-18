@@ -28,6 +28,7 @@ function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<"
 /* ---------- sound engine ---------- */
 const Sound = {
   ctx: null, master: null, analyser: null, noiseGain: null, current: null,
+  toneBus: null, toneOn: false, // toneOn: is a Morse tone sounding right now (drives the lamp, tape and flash)
   opts: { wpm: 20, fw: 20, tone: 600, vol: 0.7, qrn: 0, qsb: false },
 
   unlock() {
@@ -40,6 +41,9 @@ const Sound = {
       this.master = this.ctx.createGain();
       this.master.connect(this.analyser);
       this.analyser.connect(this.ctx.destination);
+      // Morse tones go through their own bus so "light only" can mute them
+      this.toneBus = this.ctx.createGain();
+      this.toneBus.connect(this.master);
       // band noise: white noise through a bandpass, always running, level from settings
       const len = this.ctx.sampleRate * 2, buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate), d = buf.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
@@ -56,6 +60,7 @@ const Sound = {
     }
     if (this.ctx.state !== "running") this.ctx.resume();
     this.master.gain.value = this.opts.vol;
+    this.toneBus.gain.value = this.opts.mute ? 0 : 1;
     return this.ctx;
   },
 
@@ -99,7 +104,7 @@ const Sound = {
     const osc = ctx.createOscillator(); osc.frequency.value = o.tone; osc.type = "sine";
     const env = ctx.createGain(); env.gain.value = 0;
     const qsb = ctx.createGain(); qsb.gain.value = 1;
-    osc.connect(env).connect(qsb).connect(this.master);
+    osc.connect(env).connect(qsb).connect(this.toneBus);
     const rise = 0.005;
     for (const s of p.tones) {
       const a = t0 + s.t, b = a + s.d;
@@ -124,7 +129,7 @@ const Sound = {
       while (lastMark + 1 < p.marks.length && p.marks[lastMark + 1].t <= now) { lastMark++; onChar && onChar(p.marks[lastMark].i, p.toks); }
       while (toneIdx < p.tones.length && p.tones[toneIdx].t + p.tones[toneIdx].d < now) toneIdx++;
       const on = toneIdx < p.tones.length && p.tones[toneIdx].t <= now;
-      if (on !== wasOn) { wasOn = on; onTone && onTone(on); }
+      if (on !== wasOn) { wasOn = on; this.toneOn = on; onTone && onTone(on); }
       if (now >= p.total + 0.05) { this.finish(job); onEnd && onEnd(); return; }
       requestAnimationFrame(tick);
     };
@@ -135,6 +140,7 @@ const Sound = {
 
   finish(job) {
     job.alive = false;
+    if (!this.keyOsc) this.toneOn = false;
     job.onTone && job.onTone(false);
     if (this.current === job) this.current = null;
     if (this.noiseGain && !this.current && !this.keyOsc) this.noiseGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
@@ -153,13 +159,15 @@ const Sound = {
     if (this.keyOsc) return;
     const osc = ctx.createOscillator(); osc.frequency.value = this.opts.tone;
     const g = ctx.createGain(); g.gain.value = 0;
-    osc.connect(g).connect(this.master); osc.start();
+    osc.connect(g).connect(this.toneBus); osc.start();
+    this.toneOn = true;
     g.gain.setTargetAtTime(1, ctx.currentTime, 0.002);
     this.keyOsc = { osc, g };
   },
   keyUp() {
     const k = this.keyOsc; if (!k) return;
     this.keyOsc = null;
+    this.toneOn = false;
     const t = this.ctx.currentTime;
     k.g.gain.setTargetAtTime(0, t, 0.002);
     k.osc.stop(t + 0.03);
