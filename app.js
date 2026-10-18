@@ -566,21 +566,33 @@ $("#keyNewTarget").addEventListener("click", () => { fx("tick"); keyNewTarget();
 $("#keyHear").addEventListener("click", () => Sound.play(K.target));
 
 /* ---------- CHART tab ---------- */
-const LINGO = [["CQ", "Calling anyone"], ["DE", "From / this is"], ["73", "Best regards"], ["88", "Love & kisses"], ["QTH", "My location"], ["QRZ", "Who's calling?"],
-  ["QSL", "Confirmed"], ["QRM", "Man-made QRM"], ["QRN", "Static noise"], ["QSB", "Fading"], ["QRP", "Low power"], ["QRS", "Send slower!"], ["QRQ", "Send faster"],
-  ["RST", "Signal report"], ["5NN", "599, contest style"], ["FB", "Fine business"], ["OM", "Old man (any guy)"], ["YL", "Young lady"], ["XYL", "Wife"],
-  ["TNX", "Thanks"], ["PSE", "Please"], ["AGN", "Again"], ["HI HI", "Laughing out loud"], ["ES", "And"], ["UR", "Your"], ["HR", "Here"], ["WX", "Weather"],
-  ["CUL", "See you later"], ["GL", "Good luck"], ["DX", "Long distance"], ["GM", "Good morning"], ["GE", "Good evening"], ["SRI", "Sorry"], ["EE", "Dit dit (bye!)"]];
-const PROS = [["<AR>", "End of message"], ["<SK>", "End of contact"], ["<BT>", "Break / new paragraph"], ["<KN>", "Only you go ahead"], ["<AS>", "Wait"], ["<BK>", "Back to you"], ["<SOS>", "Distress! 🆘"]];
 function patternHtml(code) { return `<div class="pattern">${[...code].map((e) => `<i class="${e === "-" ? "d" : ""}"></i>`).join("")}</div>`; }
+const proHtml = (t) => escapeHtml(t).replace(/&lt;([A-Z]{2,3})&gt;/g, '<span class="pro">$1</span>');
 function renderChart(set) {
-  let items;
-  if (set === "pro") items = PROS.map(([k, d]) => [k, d, CODE[k]]);
-  else if (set === "abbr") items = LINGO.map(([k, d]) => [k, d, null]);
-  else items = (set === "punct" ? ".,?/=+-'():@!\"" : SETS[set]).split("").map((c) => [c, set === "letters" ? PHONETIC[c] : "", CODE[c]]);
-  $("#chart").innerHTML = items.map(([k, d, code]) => `<button data-play="${escapeHtml(k)}"><b>${k.startsWith("<") ? `<span class="pro">${k.slice(1, -1)}</span>` : escapeHtml(k)}</b>${code ? patternHtml(code) : ""}<small>${d}</small></button>`).join("");
+  const f = ["abbr", "q"].includes(set) ? ($("#chartFilter").value || "").trim().toUpperCase() : "";
+  $("#chartFilterRow").classList.toggle("hidden", !["abbr", "q"].includes(set));
+  $("#chart").classList.toggle("guide", ["pro", "abbr", "q", "qso"].includes(set));
+  if (set === "qso") {
+    $("#chart").innerHTML = SAMPLE_QSOS.map((q) => `<h4>${q.title}</h4>` + q.lines.map(([line, note]) =>
+      `<button data-play="${escapeHtml(line)}" class="g-line"><code>${tokenize(line).map(pretty).join("")}</code><small>${escapeHtml(note)}</small></button>`).join("")).join("")
+      + `<p class="hint">Tap a line to hear it. Tip: the Copy tab's QSO mode plays endless random QSOs like these.</p>`;
+    return;
+  }
+  if (["pro", "abbr", "q"].includes(set)) {
+    const list = set === "pro" ? PROS : set === "abbr" ? LINGO : QCODES;
+    const rows = list.filter(([k, d, ex]) => !f || (k + " " + d + " " + ex).toUpperCase().includes(f));
+    $("#chart").innerHTML = rows.map(([k, d, ex]) => {
+      const code = CODE[k];
+      return `<button data-play="${escapeHtml(k)}" class="g-row"><b>${tokenize(k).map(pretty).join("")}${code ? patternHtml(code) : ""}</b><span><em>${escapeHtml(d)}</em>${ex ? `<small>${proHtml(ex)}</small>` : ""}</span></button>`;
+    }).join("") || `<p class="hint">Nothing found for "${escapeHtml(f)}".</p>`;
+    return;
+  }
+  const items = (set === "punct" ? ".,?/=+-'():@!\"" : SETS[set]).split("").map((c) => [c, set === "letters" ? PHONETIC[c] : "", CODE[c]]);
+  $("#chart").innerHTML = items.map(([k, d, code]) => `<button data-play="${escapeHtml(k)}"><b>${escapeHtml(k)}</b>${code ? patternHtml(code) : ""}<small>${d}</small></button>`).join("");
 }
-seg("#chartSet", (v) => { $$("#chartSet button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); renderChart(v); });
+let chartSet = "letters";
+$("#chartFilter").addEventListener("input", () => renderChart(chartSet));
+seg("#chartSet", (v) => { chartSet = v; $$("#chartSet button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); renderChart(v); });
 $("#chart").addEventListener("click", (e) => {
   const b = e.target.closest("[data-play]"); if (!b) return;
   $$("#chart .playing").forEach((x) => x.classList.remove("playing"));

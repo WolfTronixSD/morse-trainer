@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.4.0">
+<link rel="stylesheet" href="style.css?v=1.5.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
@@ -235,9 +235,12 @@
         <button data-v="letters" class="on">Letters</button>
         <button data-v="numbers">Numbers</button>
         <button data-v="punct">Punctuation</button>
-        <button data-v="pro">Prosigns</button>
-        <button data-v="abbr">Ham lingo</button>
+        <button data-v="pro">📡 Prosigns</button>
+        <button data-v="abbr">💬 Ham lingo</button>
+        <button data-v="q">❓ Q codes</button>
+        <button data-v="qso">📻 Sample QSOs</button>
       </div>
+      <div class="row hidden" id="chartFilterRow"><input type="text" id="chartFilter" placeholder="🔍 Search, e.g. QSY or weather" autocomplete="off" autocapitalize="characters"></div>
       <div class="chart" id="chart"></div>
     </div>
   </section>
@@ -339,7 +342,7 @@
     </div>
     <div class="card joke" id="joke"></div>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.4.0 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.5.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
@@ -375,6 +378,7 @@
     <div class="swatches" id="vizColors"></div>
     <div class="toggles">
       <label><input type="checkbox" id="vizFlash"> ⚡ Flash the whole screen (bright flashing light)</label>
+      <label><input type="checkbox" id="vizTorch"> 🔦 Flash the phone's flashlight</label>
       <label><input type="checkbox" id="vizMute"> 💡 Light only: mute the beep and read the blinks</label>
     </div>
     <button class="big" id="sheetDone">👍 Done</button>
@@ -402,11 +406,12 @@
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.4.0"></script>
-<script src="dsp.js?v=1.4.0"></script>
-<script src="decoder.js?v=1.4.0"></script>
-<script src="app.js?v=1.4.0"></script>
-<script src="viz.js?v=1.4.0"></script>
-<script src="sleep.js?v=1.4.0"></script>
+<script src="morse.js?v=1.5.0"></script>
+<script src="dsp.js?v=1.5.0"></script>
+<script src="decoder.js?v=1.5.0"></script>
+<script src="lingo.js?v=1.5.0"></script>
+<script src="app.js?v=1.5.0"></script>
+<script src="viz.js?v=1.5.0"></script>
+<script src="sleep.js?v=1.5.0"></script>
 </body>
 </html>

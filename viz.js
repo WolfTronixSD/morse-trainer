@@ -12,6 +12,28 @@ const VIZ_MODES = [
 ];
 const VIZ_COLORS = ["", "#ffffff", "#ff3b3b", "#ffb020", "#ffe14d", "#4dff6a", "#3df5ff", "#4d8bff", "#c04dff", "#ff4dc4"];
 
+// The phone's flashlight, through the rear camera's "torch" control. Works in
+// Chrome on Android; iPhone browsers don't offer torch control to web pages.
+const Torch = {
+  track: null, want: false, lit: false, busy: false,
+  async enable() {
+    try {
+      const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+      const t = st.getVideoTracks()[0], caps = t.getCapabilities ? t.getCapabilities() : {};
+      if (!caps.torch) { st.getTracks().forEach((x) => x.stop()); return "unsupported"; }
+      this.track = t; this.lit = false; return "ok";
+    } catch (e) { return e && e.name === "NotAllowedError" ? "denied" : "unsupported"; }
+  },
+  disable() { this.want = false; if (this.track) { try { this.track.stop(); } catch {} } this.track = null; this.lit = false; },
+  // the torch reacts slowly, so only one change is in flight and the latest wish wins
+  set(on) {
+    this.want = on;
+    if (!this.track || this.busy || this.lit === on) return;
+    this.busy = true;
+    this.track.applyConstraints({ advanced: [{ torch: on }] }).then(() => { this.lit = on; }, () => {}).finally(() => { this.busy = false; if (this.want !== this.lit) this.set(this.want); });
+  },
+};
+
 const Viz = (() => {
   const dpr = () => devicePixelRatio || 1;
   let tbuf, fbuf, level = 0, wasOn = false, labelUntil = 0;
@@ -126,6 +148,7 @@ const Viz = (() => {
     level = on ? 1 : Math.max(0, level - 0.25); // bulb: instant on, short afterglow
     const col = color();
     flash.style.background = col;
+    if (Torch.track) Torch.set(on);
     flash.style.opacity = S.set.vizFlash && level > 0 ? (0.85 * level).toFixed(2) : "0";
 
     const cvs = $$(".tab.active .scope");
@@ -182,6 +205,14 @@ const Viz = (() => {
   seg("#vizColors", (v) => { S.set.vizColor = v; save(); sync(); demo(); });
   $("#vizCustom").addEventListener("input", (e) => { S.set.vizColor = e.target.value; save(); sync(); });
   $("#vizCustom").addEventListener("change", demo);
+  $("#vizTorch").addEventListener("change", async (e) => {
+    if (!e.target.checked) { Torch.disable(); return; }
+    const r = await Torch.enable();
+    if (r === "ok") { toast("🔦 Flashlight ready! Best at 15 WPM or slower, it's a bit lazy.", 3000); demo(); return; }
+    e.target.checked = false;
+    toast(r === "denied" ? "🔦 Camera access was blocked, and the flashlight needs it." : "🔦 This browser can't switch the flashlight. iPhone doesn't allow it for web apps yet, so try ⚡ Flash the whole screen.", 4500);
+  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && Torch.track) { Torch.disable(); $("#vizTorch").checked = false; } });
   $("#vizFlash").addEventListener("change", (e) => { S.set.vizFlash = e.target.checked; save(); sync(); if (e.target.checked) demo(); });
   $("#vizMute").addEventListener("change", (e) => {
     S.set.vizMute = e.target.checked; save(); sync();
