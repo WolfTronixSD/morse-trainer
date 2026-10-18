@@ -287,3 +287,9 @@ body.sleeping .tabs { display: none; }
 .chart .g-line { text-align: left; padding: 10px 12px; }
 .chart .g-line code { font: 600 .92rem/1.5 ui-monospace, Menlo, monospace; color: var(--accent); word-break: break-word; display: block; }
 #chartFilter { width: 100%; }
+
+.help { margin-top: 10px; }
+.help summary { cursor: pointer; color: var(--accent); font-weight: 700; min-height: 40px; display: flex; align-items: center; list-style: none; }
+.help summary::-webkit-details-marker { display: none; }
+.help p { color: var(--muted); font-size: .9rem; line-height: 1.45; margin: .5rem 0; }
+.help b { color: var(--text); }

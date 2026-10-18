@@ -379,7 +379,12 @@ function startQuiz() {
 /* ---------- GAMES: Reflex ---------- */
 const RX = { on: false, set: "letters", streak: 0, score: 0, wpm: 20, lives: 3, cur: "", locked: true, n: 0 };
 function rxChars() { return RX.set === "koch" ? kochSet(S.copy.koch).replace(/[^A-Z0-9.,?/=]/g, "") : SETS[RX.set]; }
-function rxPad() { $("#rxPad").innerHTML = rxChars().split("").map((c) => `<button data-c="${c}">${c}</button>`).join(""); }
+function rxKochUi() {
+  $("#rxKochRow").classList.toggle("hidden", RX.set !== "koch");
+  $("#rxKochLesson").value = S.copy.koch; $("#rxKochVal").textContent = S.copy.koch;
+  $("#rxKochChars").textContent = kochSet(S.copy.koch).split("").join(" ");
+}
+function rxPad() { rxKochUi(); $("#rxPad").innerHTML = rxChars().split("").map((c) => `<button data-c="${c}">${c}</button>`).join(""); }
 function rxHud() {
   $("#rxStreak").textContent = RX.streak; $("#rxScore").textContent = RX.score; $("#rxWpm").textContent = RX.wpm; $("#rxBest").textContent = S.stats.rxBest;
 }
@@ -417,6 +422,10 @@ $("#rxPad").addEventListener("click", (e) => {
     b.classList.add("right"); fx("good");
     rxMsg(bonus > 1 ? pick(["⚡ LIGHTNING!", "🔥 Blazing!", "🚀 Instant!", "😎 Too easy"]) : pick(["✅ Yep!", "👍 Got it", "🎯 Bullseye"]), "good");
     if (RX.streak > S.stats.rxBest) { S.stats.rxBest = RX.streak; checkBadges(); save(); }
+    if (RX.set === "koch" && RX.streak % 20 === 0 && S.copy.koch < 40) { // Koch level-up inside the game
+      S.copy.koch++; save(); syncCopyUi(); setTimeout(rxPad, 560);
+      setTimeout(() => toast(`🎓 20 in a row! Koch lesson ${S.copy.koch} unlocked: new char "${KOCH[S.copy.koch - 1]}"`, 3200), 600);
+    }
     speak(sayChar(RX.cur));
     setTimeout(() => { b.classList.remove("right"); rxNext(); }, 550);
   } else {
@@ -436,6 +445,7 @@ $("#rxPad").addEventListener("click", (e) => {
   }
   rxHud();
 });
+$("#rxKochLesson").addEventListener("input", (e) => { S.copy.koch = +e.target.value; save(); syncCopyUi(); rxPad(); if (RX.on) rxStop("Lesson changed. Tap Start!"); });
 seg("#rxSet", (v) => { RX.set = v; $$("#rxSet button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); rxPad(); if (RX.on) rxStop("Set changed. Tap Start!"); });
 
 /* ---------- GAMES: Call Sprint ---------- */

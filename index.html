@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.5.0">
+<link rel="stylesheet" href="style.css?v=1.6.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
@@ -70,6 +70,11 @@
       <div id="customOpts" class="hidden">
         <textarea id="customText" rows="2" placeholder="Type anything, e.g. CQ CQ DE W6ABC K">CQ CQ DE DL1ABC K</textarea>
       </div>
+      <details class="help"><summary>❓ How it works</summary>
+        <p><b>Koch method</b> (pick <b>Koch</b> above): you learn every letter at full speed from day one, starting with only two, K and M. Score 90% or better on a check and the next letter unlocks, one at a time, through all 40 lessons (K M U R E S N A P T L W I . J Z = F O Y , V G 5 / Q 9 2 H 3 8 B ? 4 7 C 1 D 6 0 X). Hearing whole sound patterns at speed beats counting dits, so you never have to unlearn a slow habit. Drag the lesson slider to jump ahead or go back.</p>
+        <p><b>Groups of 5</b>: random letters in blocks, the classic drill. <b>Words</b>: common words and ham words. <b>Callsigns</b>: random calls like a pileup. <b>My text</b>: plays whatever you type.</p>
+        <p><b>How to drill</b>: tap ▶, write what you hear in the box (skip what you miss, don't stop), then ✅ Check. Green = right, red = wrong, grey = missed. 🐢 🐇 change the speed. VVV and BT at the start is the usual "tuning up" call, turn it off in settings.</p>
+        <p><b>Farnsworth</b> (🎛️ settings on the Me tab): letters stay at full speed but with extra space between them. Lower the second speed to give your brain time while keeping the sound of each letter fast.</p></details>
     </div>
 
     <div class="player card" id="copyPlayer">
@@ -105,6 +110,9 @@
         <button data-v="short">Quick 5NN</button>
         <button data-v="contest">Contest</button>
       </div>
+      <details class="help"><summary>❓ How it works</summary>
+        <p>Two stations have a full contact in Morse. ▶ to listen, 👀 Transcript to see it with the meaning of each part, 🧠 Quiz to test what you caught (name, QTH = location, RST = signal report, rig, weather).</p>
+        <p><b>Rag chew</b>: a relaxed, long chat. <b>Quick 5NN</b>: the short exchange most DX contacts use (5NN means 599, a perfect report). <b>Contest</b>: just call, report and serial number, fast. The Chart tab has the lingo, Q codes and prosigns.</p></details>
     </div>
     <div class="player card" id="qsoPlayer">
       <div class="scope-wrap"><canvas class="scope"></canvas><div class="led"></div></div>
@@ -133,6 +141,11 @@
       <button data-v="sprint">🏁 Call Sprint</button>
     </div>
 
+    <div class="card"><details class="help"><summary>❓ How it works</summary>
+        <p><b>⚡ Reflex</b>: you hear one character, tap it on the pad. Every 3 right in a row adds 1 WPM, a quick answer (under 1.2 s) scores double, a miss costs a heart and 1 WPM. Three misses ends the round. Before you start, tap any key to hear it.</p>
+        <p><b>Koch set</b> uses your Koch lesson (shared with the Copy tab). Get 20 in a row and the next letter unlocks right in the game, or use the slider.</p>
+        <p><b>🏁 Call Sprint</b>: 25 callsigns like a contest pileup. Type what you heard and press Go. Right = more points and faster, wrong = slower. 🔁 Again replays it for half the points.</p></details></div>
+
     <div id="reflexGame">
       <div class="card hud">
         <div><small>Streak</small><b id="rxStreak">0</b></div>
@@ -148,6 +161,11 @@
           <button data-v="numbers">0–9</button>
           <button data-v="mixed">All</button>
           <button data-v="koch">Koch set</button>
+        </div>
+        <div id="rxKochRow" class="row hidden">
+          <label class="lbl">Koch lesson <b id="rxKochVal">2</b> · 20 in a row unlocks the next letter</label>
+          <input type="range" id="rxKochLesson" min="2" max="40" value="2">
+          <div class="koch-chars" id="rxKochChars"></div>
         </div>
         <div class="keypad" id="rxPad"></div>
         <button class="big" id="rxStart">⚡ Start</button>
@@ -202,6 +220,11 @@
       </div>
       <button class="ghost" id="keyClear">🧽 Clear</button>
       </div>
+      <details class="help"><summary>❓ How it works</summary>
+        <p><b>🔑 Key</b>: a straight key. A short tap is a dit, hold about three times as long for a dah. Leave a gap of about three dits between letters and seven between words, and the wolf decodes it live and shows your speed.</p>
+        <p><b>🏓 Paddles</b>: iambic paddles. Hold DIT for a stream of dits, DAH for dahs, both together to alternate (for C, K, Y…). The app sets the timing, you just pick the order.</p>
+        <p><b>🎙️ Mic</b>: hold the phone near a radio or speaker and it writes down the Morse it hears. If noise shows up as E and T, lower the sensitivity; if your signal is steady, 🔒 lock the tone.</p>
+        <p>🎯 New gives you something to send, 🔊 plays it so you know how it should sound.</p></details>
       <div id="micPanel" class="hidden">
         <p class="mic-tip">🐺 Hold your phone near a speaker or your rig. The wolf listens and writes down the Morse it hears.</p>
         <div class="mic-trace"><canvas id="micTrace"></canvas><div class="led" id="micLed"></div></div>
@@ -342,7 +365,7 @@
     </div>
     <div class="card joke" id="joke"></div>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.5.0 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.6.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
@@ -406,12 +429,12 @@
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.5.0"></script>
-<script src="dsp.js?v=1.5.0"></script>
-<script src="decoder.js?v=1.5.0"></script>
-<script src="lingo.js?v=1.5.0"></script>
-<script src="app.js?v=1.5.0"></script>
-<script src="viz.js?v=1.5.0"></script>
-<script src="sleep.js?v=1.5.0"></script>
+<script src="morse.js?v=1.6.0"></script>
+<script src="dsp.js?v=1.6.0"></script>
+<script src="decoder.js?v=1.6.0"></script>
+<script src="lingo.js?v=1.6.0"></script>
+<script src="app.js?v=1.6.0"></script>
+<script src="viz.js?v=1.6.0"></script>
+<script src="sleep.js?v=1.6.0"></script>
 </body>
 </html>
