@@ -6,7 +6,7 @@ Open it in Safari, tap **Share → Add to Home Screen**, and it runs full screen
 
 - 🎧 Copy: groups of 5 (letters, numbers, mixed, punctuation, Koch), words, callsigns, your own text, scored with a diff
 - 📻 QSO simulator (rag chew, quick 5NN, contest) with a pop quiz
-- ⚡ Games: Reflex and Callsign Sprint
+- ⚡ Games: Reflex and Callsign Sprint, each with letters, numbers or letters + numbers mixed
 - 🔑 Straight key and iambic paddles with live decoding
 - 👁️ Signal display: oscilloscope, flashing signal lamp, paper tape, waterfall or ripples in any color, plus a full-screen flash and a light-only mode for reading Morse by eye
 - 🎙️ Mic decoder: hold the phone near a rig or speaker and it decodes the Morse it hears

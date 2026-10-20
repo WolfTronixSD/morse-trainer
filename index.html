@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.6.0">
+<link rel="stylesheet" href="style.css?v=1.7.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
@@ -144,7 +144,8 @@
     <div class="card"><details class="help"><summary>❓ How it works</summary>
         <p><b>⚡ Reflex</b>: you hear one character, tap it on the pad. Every 3 right in a row adds 1 WPM, a quick answer (under 1.2 s) scores double, a miss costs a heart and 1 WPM. Three misses ends the round. Before you start, tap any key to hear it.</p>
         <p><b>Koch set</b> uses your Koch lesson (shared with the Copy tab). Get 20 in a row and the next letter unlocks right in the game, or use the slider.</p>
-        <p><b>🏁 Call Sprint</b>: 25 callsigns like a contest pileup. Type what you heard and press Go. Right = more points and faster, wrong = slower. 🔁 Again replays it for half the points.</p></details></div>
+        <p><b>A–Z + 0–9</b> mixes letters and numbers together.</p>
+        <p><b>🏁 Call Sprint</b>: 25 callsigns like a contest pileup. Type what you heard and press Go. Right = more points and faster, wrong = slower. 🔁 Again replays it for half the points. Pick A–Z, 0–9 or A–Z + 0–9 instead of callsigns to sprint through random 3 to 5 character groups.</p></details></div>
 
     <div id="reflexGame">
       <div class="card hud">
@@ -159,7 +160,7 @@
         <div class="pills" id="rxSet">
           <button data-v="letters" class="on">A–Z</button>
           <button data-v="numbers">0–9</button>
-          <button data-v="mixed">All</button>
+          <button data-v="mixed">A–Z + 0–9</button>
           <button data-v="koch">Koch set</button>
         </div>
         <div id="rxKochRow" class="row hidden">
@@ -181,7 +182,13 @@
       </div>
       <div class="card">
         <div class="scope-wrap small"><canvas class="scope" id="spScope"></canvas><div class="led" id="spLed"></div></div>
-        <div class="rx-msg" id="spMsg">25 callsigns. Right answer = faster and more points. Wrong = slower. Like a real pileup, minus the lids.</div>
+        <div class="pills" id="spSet">
+          <button data-v="calls" class="on">📻 Callsigns</button>
+          <button data-v="letters">A–Z</button>
+          <button data-v="numbers">0–9</button>
+          <button data-v="mixed">A–Z + 0–9</button>
+        </div>
+        <div class="rx-msg" id="spMsg">25 rounds. Right answer = faster and more points. Wrong = slower. Like a real pileup, minus the lids.</div>
         <input id="spInput" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Callsign" enterkeyhint="go">
         <div class="row two">
           <button class="ghost" id="spRepeat">🔁 Again (−50%)</button>
@@ -365,7 +372,7 @@
     </div>
     <div class="card joke" id="joke"></div>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.6.0 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.7.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
@@ -429,12 +436,12 @@
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.6.0"></script>
-<script src="dsp.js?v=1.6.0"></script>
-<script src="decoder.js?v=1.6.0"></script>
-<script src="lingo.js?v=1.6.0"></script>
-<script src="app.js?v=1.6.0"></script>
-<script src="viz.js?v=1.6.0"></script>
-<script src="sleep.js?v=1.6.0"></script>
+<script src="morse.js?v=1.7.0"></script>
+<script src="dsp.js?v=1.7.0"></script>
+<script src="decoder.js?v=1.7.0"></script>
+<script src="lingo.js?v=1.7.0"></script>
+<script src="app.js?v=1.7.0"></script>
+<script src="viz.js?v=1.7.0"></script>
+<script src="sleep.js?v=1.7.0"></script>
 </body>
 </html>
