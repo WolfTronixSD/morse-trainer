@@ -9,13 +9,14 @@ const KEY = "ditdahdojo-v1";
 const DEFAULTS = {
   set: { wpm: 20, fw: 20, tone: 600, vol: 70, qrn: 0, qsb: false, sfx: true, speak: false, vvv: true, haptic: true, theme: "neon", viz: "scope", vizColor: "", vizFlash: false, vizMute: false },
   copy: { mode: "groups", chars: "letters", koch: 2, size: 5, count: 10, custom: "CQ CQ DE DL1ABC K" },
+  games: { rxSet: "letters", spSet: "calls" },
   xp: 0, streak: 0, lastDay: "",
   stats: { sessions: 0, chars: 0, perfect: 0, qsos: 0, qsoPerfect: 0, sends: 0, history: [], rxBest: 0, spBest: 0, maxWpm: 0 },
   badges: {},
 };
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
-S = { ...DEFAULTS, ...S, set: { ...DEFAULTS.set, ...S.set }, copy: { ...DEFAULTS.copy, ...S.copy }, stats: { ...DEFAULTS.stats, ...S.stats }, badges: { ...S.badges } };
+S = { ...DEFAULTS, ...S, set: { ...DEFAULTS.set, ...S.set }, copy: { ...DEFAULTS.copy, ...S.copy }, games: { ...DEFAULTS.games, ...S.games }, stats: { ...DEFAULTS.stats, ...S.stats }, badges: { ...S.badges } };
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
 
 /* ---------- fun text ---------- */
@@ -377,7 +378,7 @@ function startQuiz() {
 }
 
 /* ---------- GAMES: Reflex ---------- */
-const RX = { on: false, set: "letters", streak: 0, score: 0, wpm: 20, lives: 3, cur: "", locked: true, n: 0 };
+const RX = { on: false, set: S.games.rxSet, streak: 0, score: 0, wpm: 20, lives: 3, cur: "", locked: true, n: 0 };
 function rxChars() { return RX.set === "koch" ? kochSet(S.copy.koch).replace(/[^A-Z0-9.,?/=]/g, "") : SETS[RX.set]; }
 function rxKochUi() {
   $("#rxKochRow").classList.toggle("hidden", RX.set !== "koch");
@@ -446,15 +447,28 @@ $("#rxPad").addEventListener("click", (e) => {
   rxHud();
 });
 $("#rxKochLesson").addEventListener("input", (e) => { S.copy.koch = +e.target.value; save(); syncCopyUi(); rxPad(); if (RX.on) rxStop("Lesson changed. Tap Start!"); });
-seg("#rxSet", (v) => { RX.set = v; $$("#rxSet button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); rxPad(); if (RX.on) rxStop("Set changed. Tap Start!"); });
+function rxSetUi() { $$("#rxSet button").forEach((b) => b.classList.toggle("on", b.dataset.v === RX.set)); }
+seg("#rxSet", (v) => { RX.set = S.games.rxSet = v; save(); rxSetUi(); rxPad(); if (RX.on) rxStop("Set changed. Tap Start!"); });
 
 /* ---------- GAMES: Call Sprint ---------- */
 const SP = { on: false, n: 0, pts: 0, wpm: 20, call: "", repeated: false, total: 25 };
 function spHud() { $("#spN").textContent = `${SP.n}/${SP.total}`; $("#spPts").textContent = SP.pts; $("#spWpm").textContent = SP.wpm; $("#spBest").textContent = S.stats.spBest; }
+// Callsigns, or random 3 to 5 character groups from A–Z, 0–9 or both mixed
+function spTarget() {
+  const set = S.games.spSet;
+  if (set === "calls") return callsign();
+  const n = 3 + rnd(3);
+  let t = ""; for (let i = 0; i < n; i++) t += pick(SETS[set]);
+  return t;
+}
+function spSetUi() {
+  $$("#spSet button").forEach((b) => b.classList.toggle("on", b.dataset.v === S.games.spSet));
+  $("#spInput").placeholder = S.games.spSet === "calls" ? "Callsign" : "What you heard";
+}
 function spPlay() { Sound.play(SP.call, { wpm: SP.wpm, fw: SP.wpm, onTone: (on) => $("#spLed").classList.toggle("on", on) }); }
 function spNext() {
   if (SP.n >= SP.total) return spEnd();
-  SP.call = callsign(); SP.repeated = false; SP.n++;
+  SP.call = spTarget(); SP.repeated = false; SP.n++;
   $("#spInput").value = ""; $("#spInput").focus();
   spHud(); spPlay();
 }
@@ -486,6 +500,10 @@ $("#spGo").addEventListener("click", () => {
 });
 $("#spInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); spSubmit(); } });
 $("#spRepeat").addEventListener("click", () => { if (SP.on) { SP.repeated = true; spPlay(); } });
+seg("#spSet", (v) => {
+  S.games.spSet = v; save(); spSetUi();
+  if (SP.on) { SP.on = false; $("#spGo").textContent = "🏁 Start"; Sound.stop(); $("#spMsg").textContent = "Set changed. Tap Start!"; }
+});
 seg("#gameMode", (v) => {
   $$("#gameMode button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
   $("#reflexGame").classList.toggle("hidden", v !== "reflex"); $("#sprintGame").classList.toggle("hidden", v !== "sprint");
@@ -779,6 +797,6 @@ document.addEventListener("pointerdown", () => Sound.unlock(), { once: true });
 document.addEventListener("visibilitychange", () => { if (document.hidden) { copyPlayer.stop(); qsoPlayer.stop(); Sound.keyUp(); if (MicDecoder.on) micStop(); } });
 
 /* ---------- go ---------- */
-syncSettings(); syncCopyUi(); newCopyText(); newQso(); rxPad(); rxHud(); spHud(); keyNewTarget(); renderChart("letters"); renderHeader();
+syncSettings(); syncCopyUi(); newCopyText(); newQso(); rxSetUi(); rxPad(); rxHud(); spSetUi(); spHud(); keyNewTarget(); renderChart("letters"); renderHeader();
 if (S.xp === 0) setTimeout(() => toast("👋 Welcome to the Dojo! Hit ▶ and copy what you hear.", 3200), 600);
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
