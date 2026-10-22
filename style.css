@@ -255,13 +255,29 @@ input[type=range]:disabled { opacity: .4; }
 .n-wolf { font-size: 3.2rem; filter: grayscale(.4) brightness(.7); }
 @keyframes nGlow { 50% { opacity: .5; } }
 @keyframes nBreath { 0%,100% { transform: scale(.55); opacity: .5; } 40% { transform: scale(1.25); opacity: 1; } 50% { transform: scale(1.25); opacity: 1; } }
-#nPhase { font-size: .95rem; min-height: 1.3em; }
-#nText { font: 600 1.25rem/1.6 ui-monospace, Menlo, monospace; min-height: 4.8em; max-width: 34ch; letter-spacing: .08em; color: #3a3760; word-break: break-word; }
+#nPhase { font-size: calc(.95rem * min(var(--nz, 1), 1.8)); min-height: 1.3em; }
+#nText { font: 600 calc(1.25rem * var(--nz, 1))/1.45 ui-monospace, Menlo, monospace; min-height: 3em; max-width: min(100%, 34ch * var(--nz, 1)); max-height: 46vh; overflow-y: auto; scrollbar-width: none; letter-spacing: .08em; color: #3a3760; word-break: break-word; }
 #nText .d { color: #6d68a8; }
 #nText .c { color: #c9c4ff; text-shadow: 0 0 12px rgba(150,140,255,.7); }
 .n-btns { display: flex; gap: 14px; }
 .n-btns button { padding: 12px 18px; border-radius: 999px; border: 1px solid #2a2850; color: #8a86b8; background: #0a0918; font-size: 1rem; }
 .n-hint { font-size: .75rem; color: #3a3760; }
+#nText::-webkit-scrollbar { display: none; }
+.n-size { display: flex; align-items: center; gap: 10px; }
+.n-size button { min-width: 64px; padding: 14px 16px; border-radius: 999px; border: 1px solid #2a2850; color: #b7b2f0; background: #0a0918; font: 700 1.3rem system-ui, sans-serif; }
+#nSizeVal { min-width: 3ch; color: #6d68a8; font-size: .9rem; }
+#nBright.on { background: #2a2850; color: #fff; }
+/* big text: shrink the moon so the letters get the room */
+#night.big .n-moon { width: 90px; height: 90px; }
+#night.big .n-wolf { font-size: 1.8rem; }
+#night.big .n-breath { inset: 12px; }
+/* bright: high contrast for daylight / no glasses */
+#night.bright #nText { color: #8f8bbd; }
+#night.bright #nText .d { color: #fff; }
+#night.bright #nText .c { color: #ffe14d; text-shadow: none; }
+#night.bright #nPhase, #night.bright #nLeft { color: #e6e3ff; }
+#night.bright #nClock { color: #fff; }
+#night.bright.dim > * { opacity: .7; }
 body.sleeping { overflow: hidden; }
 body.sleeping .tabs { display: none; }
 .tabs button { font-size: .62rem; }

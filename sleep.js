@@ -4,9 +4,16 @@
 
 const SLEEP_DEFAULTS = {
   source: "ham", easy: true, wpm: 18, fw: 10, pitch: 550, vol: 60, echo: false, drift: true, show: true,
-  primer: 5, wave: "theta", beatsUnder: true, beatVol: 35, amb: "ocean", ambVol: 35, timer: 30, custom: "",
+  primer: 5, wave: "theta", beatsUnder: true, beatVol: 35, amb: "ocean", ambVol: 35, timer: 30, custom: "", zoom: 0, bright: false,
 };
-S.sleep = { ...SLEEP_DEFAULTS, ...(S.sleep || {}) };
+let fromLink = null;
+try {
+  const m = location.hash.match(/sleep=([^&]+)/);
+  if (m) fromLink = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+} catch {}
+S.sleep = { ...SLEEP_DEFAULTS, ...(S.sleep || {}), ...(fromLink && typeof fromLink === "object" ? fromLink : {}) };
+if (fromLink) { save(); history.replaceState(null, "", location.pathname + location.search); setTimeout(() => toast("💾 Sleep settings restored"), 600); }
+try { navigator.storage?.persist?.(); } catch {}
 S.stats.sleepMin = S.stats.sleepMin || 0;
 BADGES.push(
   { id: "sleep1", i: "😴", n: "Sleepy Wolf", d: "Finish a sleep session", ok: () => S.stats.sleepMin >= 10 },
@@ -267,11 +274,39 @@ const Sleep = {
     Sound.play(it.text, { wpm: o.wpm, fw: Math.min(o.fw, o.wpm) });
   });
 
+  // settings link: same settings in Safari, the hub and the home-screen app
+  $("#slLink").addEventListener("click", async () => {
+    const code = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(S.sleep)))));
+    const url = location.origin + location.pathname + "#sleep=" + code;
+    try { await navigator.clipboard.writeText(url); toast("🔗 Settings link copied. Paste it in Notes to keep it."); }
+    catch { prompt("Copy your settings link:", url); }
+  });
+  navigator.storage?.persisted?.().then((p) => { if (p) $("#slSaved").textContent = "✅ Saved on this phone (kept permanently)"; }).catch(() => {});
+
   /* night screen */
   const night = $("#night");
   let tick, lock, dim = false;
   const wake = async () => { try { lock = await navigator.wakeLock?.request("screen"); } catch {} };
   const fmt = (ms) => { const m = Math.max(0, Math.ceil(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`; };
+  // text size: steps of the Morse letters, remembered between sessions
+  const ZOOM = [1, 1.35, 1.8, 2.4, 3.1, 4];
+  const applyLook = () => {
+    S.sleep.zoom = Math.max(0, Math.min(ZOOM.length - 1, S.sleep.zoom | 0));
+    night.style.setProperty("--nz", ZOOM[S.sleep.zoom]);
+    night.classList.toggle("big", S.sleep.zoom >= 2);
+    night.classList.toggle("bright", !!S.sleep.bright);
+    $("#nBright").classList.toggle("on", !!S.sleep.bright);
+    $("#nSizeVal").textContent = `${S.sleep.zoom + 1}/${ZOOM.length}`;
+    $("#nSmaller").disabled = S.sleep.zoom === 0;
+    $("#nBigger").disabled = S.sleep.zoom === ZOOM.length - 1;
+  };
+  const sizeBtn = (id, d) => $(id).addEventListener("click", (e) => {
+    e.stopPropagation(); S.sleep.zoom += d; applyLook(); save(); fx("tick"); render();
+  });
+  sizeBtn("#nSmaller", -1); sizeBtn("#nBigger", 1);
+  $("#nBright").addEventListener("click", (e) => { e.stopPropagation(); S.sleep.bright = !S.sleep.bright; applyLook(); save(); fx("tick"); });
+  applyLook();
+  let lastK = -2;
   const render = () => {
     const now = new Date();
     $("#nClock").textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -283,7 +318,15 @@ const Sleep = {
       const t = performance.now(), m = Sleep.marks; let k = -1;
       for (let i = 0; i < m.length; i++) if (m[i].at <= t) k = i;
       const toks = tokenize(Sleep.cur?.text || "");
-      $("#nText").innerHTML = toks.map((x, i) => `<span class="${i < k ? "d" : i === k ? "c" : ""}">${x === " " ? " " : escapeHtml(x)}</span>`).join("");
+      const box = $("#nText");
+      box.innerHTML = toks.map((x, i) => `<span class="${i < k ? "d" : i === k ? "c" : ""}">${x === " " ? " " : escapeHtml(x)}</span>`).join("");
+      // big text overflows: keep the letter being sent in view
+      if (k !== lastK) {
+        lastK = k;
+        const c = $(".c", box);
+        if (c && box.scrollHeight > box.clientHeight) box.scrollTop = c.offsetTop - box.offsetTop - box.clientHeight / 3;
+        else if (k < 0) box.scrollTop = 0;
+      }
     } else $("#nText").textContent = "";
   };
   Sleep.onItem = () => render();
