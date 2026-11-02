@@ -30,7 +30,7 @@ function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<"
 const Sound = {
   ctx: null, master: null, analyser: null, noiseGain: null, current: null,
   toneBus: null, toneOn: false, // toneOn: is a Morse tone sounding right now (drives the lamp, tape and flash)
-  opts: { wpm: 20, fw: 20, tone: 600, vol: 0.7, qrn: 0, qsb: false },
+  opts: { wpm: 20, fw: 20, tone: 600, vol: 1, qrn: 0, qsb: false },
 
   unlock() {
     if (!this.ctx) {
@@ -40,7 +40,17 @@ const Sound = {
       this.analyser = this.ctx.createAnalyser();
       this.analyser.fftSize = 2048;
       this.master = this.ctx.createGain();
-      this.master.connect(this.analyser);
+      // Loudness: master can go up to 2x. A soft limiter rounds off the peaks so
+      // a boosted tone gets louder and fuller (great on the tiny iPhone speaker)
+      // instead of crackling.
+      const pre = this.ctx.createGain(); pre.gain.value = 1 / 4;
+      const lim = this.ctx.createWaveShaper(), n = 4096, curve = new Float32Array(n), knee = 0.7;
+      for (let i = 0; i < n; i++) {
+        const x = ((i / (n - 1)) * 2 - 1) * 4, a = Math.abs(x);
+        curve[i] = Math.sign(x) * (a < knee ? a : knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee))) * 0.98;
+      }
+      lim.curve = curve; lim.oversample = "4x";
+      this.master.connect(pre).connect(lim).connect(this.analyser);
       this.analyser.connect(this.ctx.destination);
       // Morse tones go through their own bus so "light only" can mute them
       this.toneBus = this.ctx.createGain();

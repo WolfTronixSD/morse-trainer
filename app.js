@@ -7,16 +7,19 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 /* ---------- saved state ---------- */
 const KEY = "ditdahdojo-v1";
 const DEFAULTS = {
-  set: { wpm: 20, fw: 20, tone: 600, vol: 70, qrn: 0, qsb: false, sfx: true, speak: false, vvv: true, haptic: true, theme: "neon", viz: "scope", vizColor: "", vizFlash: false, vizMute: false },
+  set: { wpm: 20, fw: 20, tone: 600, vol: 100, qrn: 0, qsb: false, sfx: true, speak: false, vvv: true, haptic: true, theme: "neon", viz: "scope", vizColor: "", vizFlash: false, vizMute: false },
   copy: { mode: "groups", chars: "letters", koch: 2, size: 5, count: 10, custom: "CQ CQ DE DL1ABC K" },
   games: { rxSet: "letters", spSet: "calls" },
   xp: 0, streak: 0, lastDay: "",
   stats: { sessions: 0, chars: 0, perfect: 0, qsos: 0, qsoPerfect: 0, sends: 0, history: [], rxBest: 0, spBest: 0, maxWpm: 0 },
   badges: {},
+  ui: {}, // last tab, QSO type, game, key type, chart page and mic settings
 };
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
-S = { ...DEFAULTS, ...S, set: { ...DEFAULTS.set, ...S.set }, copy: { ...DEFAULTS.copy, ...S.copy }, games: { ...DEFAULTS.games, ...S.games }, stats: { ...DEFAULTS.stats, ...S.stats }, badges: { ...S.badges } };
+S = { ...DEFAULTS, ...S, set: { ...DEFAULTS.set, ...S.set }, copy: { ...DEFAULTS.copy, ...S.copy }, games: { ...DEFAULTS.games, ...S.games }, stats: { ...DEFAULTS.stats, ...S.stats }, badges: { ...S.badges }, ui: { ...S.ui } };
+// v1.9: the tone got a louder range, so lift old quiet volumes once
+if (!S.ui.loud) { S.ui.loud = 1; if (S.set.vol < 100) S.set.vol = 100; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
 
 /* ---------- fun text ---------- */
@@ -52,7 +55,8 @@ function toast(msg, ms = 1800) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
   clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), ms);
 }
-function fx(kind) { if (S.set.sfx) Sound.fx(kind); buzz(kind === "bad" ? 2 : kind === "level" ? 3 : 1); }
+let quietFx = false;
+function fx(kind) { if (quietFx) return; if (S.set.sfx) Sound.fx(kind); buzz(kind === "bad" ? 2 : kind === "level" ? 3 : 1); }
 
 // Haptics: Android has navigator.vibrate; iPhone Safari (iOS 18+) gives a tick when a switch control toggles.
 const buzz = (() => {
@@ -798,5 +802,33 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) { cop
 
 /* ---------- go ---------- */
 syncSettings(); syncCopyUi(); newCopyText(); newQso(); rxSetUi(); rxPad(); rxHud(); spSetUi(); spHud(); keyNewTarget(); renderChart("letters"); renderHeader();
+
+/* ---------- remember the last screen and choices ---------- */
+(() => {
+  const SEGS = ["qsoType", "gameMode", "keyType", "chartSet"], INPUTS = ["micSens", "micLock", "micFreqSlider"];
+  // put everything back the way it was, without clicks or sounds
+  quietFx = true;
+  try {
+    for (const id of SEGS) { const v = S.ui[id]; if (v != null) $(`#${id} button[data-v="${v}"]`)?.click(); }
+    for (const id of INPUTS) {
+      const v = S.ui[id], el = $("#" + id); if (v == null || !el) continue;
+      if (el.type === "checkbox") el.checked = v; else el.value = v;
+      el.dispatchEvent(new Event(el.type === "checkbox" ? "change" : "input"));
+    }
+    if (S.ui.micLock) $("#micFreqSlider").dispatchEvent(new Event("input"));
+    if (S.ui.tab) $(`.tabs button[data-tab="${S.ui.tab}"]`)?.click();
+    scrollTo(0, 0);
+  } catch {}
+  quietFx = false;
+  // and keep track from now on
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-v], button[data-tab]"); if (!b) return;
+    const box = b.parentElement?.id;
+    if (b.dataset.tab) S.ui.tab = b.dataset.tab; else if (SEGS.includes(box)) S.ui[box] = b.dataset.v; else return;
+    save();
+  });
+  for (const id of INPUTS) $("#" + id)?.addEventListener("change", (e) => { S.ui[id] = e.target.type === "checkbox" ? e.target.checked : +e.target.value; save(); });
+  try { navigator.storage?.persist?.(); } catch {}
+})();
 if (S.xp === 0) setTimeout(() => toast("👋 Welcome to the Dojo! Hit ▶ and copy what you hear.", 3200), 600);
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
