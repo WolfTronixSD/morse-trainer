@@ -37,6 +37,46 @@ const FABLES = [
   "A little station on a hill had a wire antenna in a tall pine tree. Every evening it talked to friends in Japan, Brazil and Spain.",
   "The rain fell softly on the roof. Inside the shack the radio glowed. A friend in Ireland sent seventy three and the operator smiled.",
   "A lighthouse keeper sent Morse to passing ships. Every light, every dit, kept the sailors safe until the morning came.",
+  "A small bird built a nest in an old mailbox. Every day the mailman left the letters on the step so the eggs could stay warm.",
+  "A cat sat in the window and watched the snow. She tried to catch the flakes with her paw. Then she curled up by the fire and slept.",
+  "A boy found a lost puppy in the rain. He took it home and dried it with a towel. The next day the owner came and gave him a big hug.",
+  "An old man planted a tree he would never see grow tall. Why, asked a child. So you can sit in the shade one day, he said.",
+  "A goose laid one golden egg each day. The farmer wanted all the gold at once. He cut the goose open and found nothing at all.",
+  "A town mouse visited a country mouse. The food was plain but the night was quiet. I will take beans in peace, said the country mouse.",
+  "Two friends met a bear in the woods. One climbed a tree. The other lay still. The bear sniffed him and walked away. Pick your friends well.",
+  "A farmer had a stubborn mule. He pushed and pulled. Then his daughter held out a carrot and the mule walked right along.",
+  "A tired rider pedaled up a long hill. Halfway up he wanted to stop. He looked at the road and said one more turn. At the top the view was grand.",
+  "A boy and his dad rode bikes to the lake. They fished all morning and caught one small fish. They let it go and ate sandwiches in the sun.",
+  "A girl rode her bike to the beach at dawn. The waves were calm and the sand was cold. She watched the sun come up and rode home happy.",
+  "A wolf pup could not howl. He tried and tried but only a squeak came out. One night under the full moon he took a deep breath and the whole valley heard him.",
+  "A sailor was lost in the fog. He could not see the shore. Then he heard a bell from the harbor and followed it home.",
+  "A baker got up at four each day. She made bread for the whole village. When she was sick, the village came and baked bread for her.",
+  "A little train had a heavy load and a big hill. I think I can, it said. I think I can. Slowly it reached the top.",
+  "A kid found an old radio in the attic. He cleaned it and plugged it in. It hummed and glowed, and a voice from far away said hello.",
+  "A ham in a cabin sent CQ on a cold night. A friend in Finland answered. They talked about snow and saunas until two in the morning.",
+  "Two hams met on the air every Sunday for forty years. They never met in person. When one went silent, the other sent a long slow seventy three.",
+  "A camper set up a small radio on a mountain top. The air was thin and the sky was blue. Her tiny signal reached a man in Germany.",
+  "A man kept a shop on a quiet street. Each day he swept the step and waved at people. When he retired, the whole street threw him a party.",
+  "A frog lived in a well. He thought the sky was a small round circle. One day he jumped out and saw how big the sky really was.",
+  "An owl sat in an oak tree. The more he saw, the less he spoke. The less he spoke, the more he heard. He was a wise old owl.",
+  "A child asked the moon to come down and play. The moon smiled and sent a silver path across the lake for the child to dream on.",
+  "A fisherman sat in his boat all day. He did not catch a thing. But he saw a whale, two dolphins and a red sunset. It was a good day.",
+  "A cook made soup from a stone. A villager added a carrot. Another added a potato. Soon there was soup for everyone.",
+  "A horse and a donkey carried loads to town. The donkey asked for help. The horse said no. The donkey fell, and the horse had to carry both loads.",
+  "A small boat sailed on a big sea. A storm came at night. The captain sent SOS and a ship came through the waves to save them.",
+  "A girl learned Morse from her grandpa. He tapped on the table at dinner. Pass the salt, he sent. She laughed and tapped back OK.",
+  "A dog waited at the station every evening for his master. Many years went by. The town built a statue to the faithful dog.",
+  "A bee and a flower were good friends. The bee got sweet food. The flower got help to make seeds. Both were happy all summer long.",
+  "A rabbit was proud of his ears. A deer was proud of his legs. When the fox came, the legs ran fast, and the ears heard him first.",
+  "A man rode his bike across the whole country. He met kind people, ate pie in small towns and slept under the stars. He never forgot the trip.",
+  "A boy dropped a coin in a fountain and made a wish. He wished for a friend. When he turned around, a girl asked if he wanted to play.",
+  "The snow fell all night. In the morning the world was white and still. Children ran out with sleds, and the dog jumped in the deep snow.",
+  "A sparrow found a crumb of bread. A big crow took it. The sparrow found another crumb and ate it fast. Then she sang a happy song.",
+  "An old radio operator taught a young one. Listen more than you send, he said. A good ear is worth more than a fast hand.",
+  "A pilot flew over the ocean at night. The radio crackled. A ship below sent the weather in Morse. Clear skies ahead, it said.",
+  "A grandma knitted a scarf for every child in the town. It took her ten years. Every winter the town looked like a rainbow.",
+  "A fox asked a stork to dinner and served soup on a flat plate. The stork asked the fox back and served soup in a tall jar. They both learned to share.",
+  "A lazy cat and a busy squirrel lived in the same tree. In fall the squirrel hid nuts. In winter she shared them with the cat, who promised to help next year.",
 ];
 const WIKI = "https://en.wikipedia.org/api/rest_v1/page/random/summary";
 const NEWS_URL = "https://wolftronixsd.github.io/hobby-hub/news.json";
@@ -149,7 +189,7 @@ const Sleep = {
     }
 
     // Morse tone chain
-    this.mGain = keep(ctx.createGain()); this.mGain.gain.value = (o.vol / 100) * 0.5; this.mGain.connect(this.out);
+    this.mGain = keep(ctx.createGain()); this.mGain.gain.value = (o.vol / 100) * (o.bike ? 1 : 0.5); this.mGain.connect(this.out);
 
     // sleep timer with a 3 minute fade
     this.endAt = o.timer ? Date.now() + o.timer * 60000 : 0;
@@ -313,7 +353,7 @@ const Sleep = {
     $("#nLeft").textContent = Sleep.endAt ? `🌙 ${fmt(Sleep.endAt - Date.now())} left` : "🌙 no timer";
     const primer = Date.now() < Sleep.morseAt;
     night.classList.toggle("primer", primer);
-    $("#nPhase").textContent = Sleep.paused ? "⏸ Paused" : primer ? `🫁 Breathe and relax · Morse starts in ${fmt(Sleep.morseAt - Date.now())}` : `📡 ${Sleep.wpmNow()[0]} WPM · sentence ${Sleep.count}`;
+    $("#nPhase").textContent = Sleep.paused ? "⏸ Paused" : primer ? `🫁 Breathe and relax · Morse starts in ${fmt(Sleep.morseAt - Date.now())}` : `${Sleep.o?.bike ? "🚲" : "📡"} ${Sleep.wpmNow()[0]} WPM · sentence ${Sleep.count}`;
     if (Sleep.marks && S.sleep.show) {
       const t = performance.now(), m = Sleep.marks; let k = -1;
       for (let i = 0; i < m.length; i++) if (m[i].at <= t) k = i;
@@ -337,12 +377,18 @@ const Sleep = {
     toast(timerEnded ? `😴 Sleep timer done. ${mins} min of dreamy Morse. 73!` : `🌙 Session ended after ${mins} min`, 3500);
     checkBadges(); renderHeader();
   };
-  $("#slStart").addEventListener("click", () => {
+  const go = (opts) => {
     Sound.stop(); buzz();
-    Sleep.start({ ...o });
+    Sleep.start(opts);
     dim = false; night.classList.remove("dim", "hidden"); document.body.classList.add("sleeping");
     $("#nPause").textContent = "⏸";
     wake(); render(); tick = setInterval(render, 250);
+  };
+  $("#slStart").addEventListener("click", () => go({ ...o }));
+  // bike: easy bedtime stories, loud, nothing else; your own sleep settings stay as they are
+  $("#slBike").addEventListener("click", () => {
+    go({ ...o, bike: true, source: "fables", easy: true, amb: "none", primer: 0, beatsUnder: false, vol: 100, drift: false, echo: false, timer: 0 });
+    toast("🚲 Ride safe! Keep one ear free for traffic.", 3000);
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && Sleep.on) wake(); });
   $("#nStop").addEventListener("click", (e) => { e.stopPropagation(); Sleep.stop(false); });
