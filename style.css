@@ -310,3 +310,4 @@ body.sleeping .tabs { display: none; }
 .help p { color: var(--muted); font-size: .9rem; line-height: 1.45; margin: .5rem 0; }
 .help b { color: var(--text); }
 .big.bike { background: linear-gradient(90deg, #ffb020, #ff5f6d); }
+.share-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: 1rem; display: grid; place-items: center; }

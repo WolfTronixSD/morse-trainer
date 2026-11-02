@@ -793,6 +793,17 @@ async function shareText(text) {
     else { await navigator.clipboard.writeText(`${text} ${url}`); toast("📋 Copied to clipboard!"); }
   } catch {}
 }
+const SHARE_LINES = [
+  "🐺 Learn Morse code the fun way with Dit Dah Dojo! Free, works on your phone, no sign-up. AWOO!",
+  "📻 Dit Dah Dojo: a fun Morse trainer with games, QSOs, a mic decoder and sleepy Morse. Give it a try!",
+  "··· Dit dah! I'm learning Morse with Dit Dah Dojo. Come join me, it's free.",
+];
+const shareApp = () => {
+  buzz(); const l = levelOf(S.xp);
+  shareText(pick(SHARE_LINES) + (S.xp ? ` I'm level ${l}, ${titleOf(l)[0]}.` : ""));
+};
+$("#shareApp").addEventListener("click", shareApp);
+$("#shareApp2").addEventListener("click", shareApp);
 const isIos = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
 if (isIos && !standalone && !localStorage.getItem("ddd-nohint")) $("#installHint").classList.remove("hidden");
