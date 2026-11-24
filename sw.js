@@ -1,6 +1,6 @@
 // Dit Dah Dojo service worker: works fully offline once opened.
-const CACHE = "ditdahdojo-1.11.0";
-const FILES = ["./", "index.html", "style.css?v=1.11.0", "morse.js?v=1.11.0", "dsp.js?v=1.11.0", "decoder.js?v=1.11.0", "lingo.js?v=1.11.0", "app.js?v=1.11.0", "viz.js?v=1.11.0", "sleep.js?v=1.11.0", "manifest.webmanifest",
+const CACHE = "ditdahdojo-1.12.0";
+const FILES = ["./", "index.html", "style.css?v=1.12.0", "morse.js?v=1.12.0", "dsp.js?v=1.12.0", "decoder.js?v=1.12.0", "lingo.js?v=1.12.0", "app.js?v=1.12.0", "viz.js?v=1.12.0", "sleep.js?v=1.12.0", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png", "icons/logo-96.png"];
 
 self.addEventListener("install", (e) => {
@@ -15,8 +15,13 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).then((res) => { const c = res.clone(); caches.open(CACHE).then((x) => x.put("./", c)); return res; })
-      .catch(() => caches.match("./")));
+    // network first, but give up after 4 s on a weak signal; only a good page replaces the cached one
+    const net = fetch(req).then((res) => {
+      if (res.ok && !res.redirected && res.type === "basic") { const c = res.clone(); caches.open(CACHE).then((x) => x.put("./", c)); }
+      return res;
+    });
+    const slow = new Promise((ok) => setTimeout(ok, 4000)).then(() => caches.match("./")).then((hit) => hit || net);
+    e.respondWith(Promise.race([net.catch(() => caches.match("./")), slow]));
     return;
   }
   // cache first; refill on a miss (the hub's own worker may clear other caches on this site)

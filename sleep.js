@@ -88,19 +88,21 @@ function cleanForMorse(s, easy) {
   s = easy ? s.replace(/[^A-Z0-9 ]+/g, " ") : s.replace(/[^A-Z0-9 .,?/=]+/g, " ");
   return s.replace(/\s+/g, " ").trim();
 }
-const toSentences = (txt) => txt.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter((x) => x.length > 2);
+const toSentences = (txt) => (txt.match(/[^.!?]+[.!?]*/g) || []).map((x) => x.trim()).filter((x) => x.length > 2);
 
 async function fetchNews(topic) {
   let data;
   try {
     const r = await fetch(NEWS_URL, { cache: "no-cache" });
     data = await r.json();
-    try { localStorage.setItem("ddd-news", JSON.stringify(data)); } catch {}
+    const slim = { topics: {} };
+    for (const ks of Object.values(NEWS_TOPICS)) for (const k of ks) slim.topics[k] = (data?.topics?.[k] || []).map((it) => ({ title: it.title }));
+    try { localStorage.setItem("ddd-news", JSON.stringify(slim)); } catch {}
   } catch {
     try { data = JSON.parse(localStorage.getItem("ddd-news")); } catch {}
   }
   const titles = [];
-  for (const k of NEWS_TOPICS[topic] || []) for (const it of data?.topics?.[k] || []) titles.push(it.title.replace(/\s+[-–|]\s+[^-–|]+$/, ""));
+  for (const k of NEWS_TOPICS[topic] || []) for (const it of data?.topics?.[k] || []) titles.push(String(it.title || "").replace(/\s+[-–|]\s+[^-–|]+$/, ""));
   return shuffle([...new Set(titles)]);
 }
 async function fetchWiki(n = 3) {
@@ -121,8 +123,10 @@ async function nextBatch(o) {
   else if (o.source === "qso") raw = Array.from({ length: 4 }, () => makeQso("rag").lines.map((l) => l.text.replace(/<[A-Z]+>/g, " "))).flat();
   else if (o.source === "custom") raw = toSentences(o.custom || "");
   else raw = shuffle(FABLES).flatMap(toSentences);
-  if (!raw.length) { toast("📡 No connection, telling a story instead"); raw = shuffle(FABLES).flatMap(toSentences); }
-  return raw.map((x) => ({ text: cleanForMorse(x, o.easy), say: x })).filter((x) => x.text.length > 1);
+  const prep = (list) => list.map((x) => ({ text: cleanForMorse(x, o.easy), say: x })).filter((x) => x.text.length > 1);
+  let out = prep(raw);
+  if (!out.length) { toast(o.source === "custom" ? "✍️ Nothing Morse-able in your text, telling a story instead" : "📡 No connection, telling a story instead"); out = prep(shuffle(FABLES).flatMap(toSentences)); }
+  return out;
 }
 
 /* ---------- the sound ---------- */
@@ -146,7 +150,7 @@ const Sleep = {
   on: false,
   start(o) {
     const ctx = Sound.unlock(), t0 = ctx.currentTime;
-    this.o = o; this.ctx = ctx; this.on = true; this.paused = false;
+    this.o = o; this.ctx = ctx; this.on = true; this.paused = false; this.sid = (this.sid || 0) + 1;
     this.nodes = [];
     this.out = ctx.createGain(); this.out.gain.value = 0;
     this.out.gain.linearRampToValueAtTime(1, t0 + 4); // gentle start
@@ -224,8 +228,12 @@ const Sleep = {
   async next() {
     if (!this.on) return;
     if (this.paused) { this.waitT = setTimeout(() => this.next(), 1000); return; }
-    if (!this.queue.length) this.queue = await nextBatch(this.o);
-    if (!this.on) return;
+    const sid = this.sid;
+    try {
+      if (!this.queue.length) this.queue = await nextBatch(this.o);
+    } catch { this.queue = []; }
+    if (!this.on || sid !== this.sid) return;
+    if (!this.queue.length) { this.waitT = setTimeout(() => this.next(), 3000); return; }
     const item = (this.cur = this.queue.shift());
     this.count++;
     this.onItem && this.onItem(item);
@@ -241,6 +249,7 @@ const Sleep = {
       env.gain.setValueAtTime(1, b - rise); env.gain.linearRampToValueAtTime(0, b);
     }
     osc.start(t0); osc.stop(t0 + p.total + 0.1);
+    osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch {} };
     this.osc = osc;
     this.marks = p.marks.map((m) => ({ ...m, at: performance.now() + (0.2 + m.t) * 1000 }));
     this.waitT = setTimeout(() => this.afterMorse(item), (p.total + 0.3) * 1000);
@@ -270,9 +279,9 @@ const Sleep = {
     [this.endTimer, this.primerTimer, this.waitT].forEach(clearTimeout); clearInterval(this.minuteTimer);
     try { this.osc && this.osc.stop(); } catch {}
     window.speechSynthesis?.cancel();
-    const ctx = this.ctx, out = this.out;
+    const ctx = this.ctx, out = this.out, nodes = this.nodes;
     out.gain.cancelScheduledValues(ctx.currentTime); out.gain.setTargetAtTime(0, ctx.currentTime, 0.4);
-    setTimeout(() => { for (const n of this.nodes) { try { n.stop && n.stop(); } catch {} try { n.disconnect(); } catch {} } out.disconnect(); }, 2000);
+    setTimeout(() => { for (const n of nodes) { try { n.stop && n.stop(); } catch {} try { n.disconnect(); } catch {} } out.disconnect(); }, 2000);
     this.onStop && this.onStop(timerEnded);
     save();
   },
@@ -309,7 +318,7 @@ const Sleep = {
   // preview: one sentence from the chosen source at the chosen speed
   $("#slPreview").addEventListener("click", async () => {
     const b = await nextBatch(o);
-    const it = b[0];
+    const it = b[0]; if (!it) return;
     $("#slPreviewText").textContent = it.text;
     Sound.play(it.text, { wpm: o.wpm, fw: Math.min(o.fw, o.wpm) });
   });
@@ -326,7 +335,11 @@ const Sleep = {
   /* night screen */
   const night = $("#night");
   let tick, lock, dim = false;
-  const wake = async () => { try { lock = await navigator.wakeLock?.request("screen"); } catch {} };
+  let warned = false;
+  const wake = async () => {
+    try { lock = await navigator.wakeLock.request("screen"); }
+    catch { if (!warned) { warned = true; setTimeout(() => toast("🔆 To keep it playing, set Settings › Display › Auto-Lock to Never while you listen", 5000), 3500); } }
+  };
   const fmt = (ms) => { const m = Math.max(0, Math.ceil(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`; };
   // text size: steps of the Morse letters, remembered between sessions
   const ZOOM = [1, 1.35, 1.8, 2.4, 3.1, 4];
@@ -375,7 +388,7 @@ const Sleep = {
     try { lock && lock.release(); } catch {}
     const mins = Math.round((Date.now() - Sleep.startedAt) / 60000);
     toast(timerEnded ? `😴 Sleep timer done. ${mins} min of dreamy Morse. 73!` : `🌙 Session ended after ${mins} min`, 3500);
-    checkBadges(); renderHeader();
+    checkBadges(); renderHeader(); flushCelebrations();
   };
   const go = (opts) => {
     Sound.stop(); buzz();

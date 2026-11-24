@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dit Dah Dojo · Morse Trainer</title>
 <meta name="description" content="A fun Morse code trainer: groups of 5, letters, numbers, QSOs, callsign sprint, reflex game and a straight key.">
 <meta name="theme-color" content="#0b0820">
@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css?v=1.11.0">
+<link rel="stylesheet" href="style.css?v=1.12.0">
 </head>
 <body data-theme="neon">
 <canvas id="confetti"></canvas>
@@ -27,16 +27,16 @@
     </div>
   </div>
   <div class="top-right">
-    <div class="streak" id="streak" title="Daily streak">🔥 0</div>
+    <div class="streak" id="streak" title="Daily streak" role="img" aria-label="Daily streak">🔥 0</div>
     <button class="share-btn" id="shareApp" aria-label="Share Dit Dah Dojo">📤</button>
-    <button class="chip" id="speedChip" aria-label="Speed and tone settings">20 WPM</button>
+    <button class="chip" id="speedChip" aria-label="Settings: speed, sound, theme and display">20 WPM</button>
   </div>
   <div class="xpbar"><div id="xpFill"></div><span id="xpText">Lvl 1 · 0 XP</span></div>
 </header>
 
 <div id="installHint" class="install hidden">
   <span>📲 Make it an app: tap <b>Share</b> then <b>Add to Home Screen</b>.</span>
-  <button class="x" data-close="installHint">✕</button>
+  <button class="x" data-close="installHint" aria-label="Close">✕</button>
 </div>
 
 <main>
@@ -44,7 +44,7 @@
   <section class="tab active" id="tab-copy">
     <div class="card">
       <div class="seg" id="copyMode">
-        <button data-v="groups" class="on">Groups of 5</button>
+        <button data-v="groups" class="on">Groups</button>
         <button data-v="words">Words</button>
         <button data-v="calls">Callsigns</button>
         <button data-v="custom">My text</button>
@@ -60,7 +60,7 @@
         </div>
         <div id="kochRow" class="row hidden">
           <label class="lbl">Koch lesson <b id="kochVal">2</b></label>
-          <input type="range" id="kochLesson" min="2" max="40" value="2">
+          <input type="range" id="kochLesson" min="2" max="41" value="2">
           <div class="koch-chars" id="kochChars"></div>
         </div>
         <div class="row two">
@@ -69,21 +69,21 @@
         </div>
       </div>
       <div id="customOpts" class="hidden">
-        <textarea id="customText" rows="2" placeholder="Type anything, e.g. CQ CQ DE W6ABC K">CQ CQ DE DL1ABC K</textarea>
+        <textarea id="customText" aria-label="Your own text to play" rows="2" placeholder="Type anything, e.g. CQ CQ DE W6ABC K">CQ CQ DE DL1ABC K</textarea>
       </div>
       <details class="help"><summary>❓ How it works</summary>
         <p><b>Koch method</b> (pick <b>Koch</b> above): you learn every letter at full speed from day one, starting with only two, K and M. Score 90% or better on a check and the next letter unlocks, one at a time, through all 40 lessons (K M U R E S N A P T L W I . J Z = F O Y , V G 5 / Q 9 2 H 3 8 B ? 4 7 C 1 D 6 0 X). Hearing whole sound patterns at speed beats counting dits, so you never have to unlearn a slow habit. Drag the lesson slider to jump ahead or go back.</p>
-        <p><b>Groups of 5</b>: random letters in blocks, the classic drill. <b>Words</b>: common words and ham words. <b>Callsigns</b>: random calls like a pileup. <b>My text</b>: plays whatever you type.</p>
+        <p><b>Groups</b>: random letters (5 per group, change it with the slider) in blocks, the classic drill. <b>Words</b>: common words and ham words. <b>Callsigns</b>: random calls like a pileup. <b>My text</b>: plays whatever you type.</p>
         <p><b>How to drill</b>: tap ▶, write what you hear in the box (skip what you miss, don't stop), then ✅ Check. Green = right, red = wrong, grey = missed. 🐢 🐇 change the speed. VVV and BT at the start is the usual "tuning up" call, turn it off in settings.</p>
-        <p><b>Farnsworth</b> (🎛️ settings on the Me tab): letters stay at full speed but with extra space between them. Lower the second speed to give your brain time while keeping the sound of each letter fast.</p></details>
+        <p><b>Farnsworth</b> (tap the WPM button at the top): letters stay at full speed but with extra space between them. Lower the second speed to give your brain time while keeping the sound of each letter fast.</p></details>
     </div>
 
     <div class="player card" id="copyPlayer">
       <div class="scope-wrap"><canvas class="scope"></canvas><div class="led"></div></div>
       <div class="controls">
-        <button class="ctl" data-act="slower" title="Slower">🐢</button>
-        <button class="play" data-act="play"><span class="pi">▶</span></button>
-        <button class="ctl" data-act="faster" title="Faster">🐇</button>
+        <button class="ctl" data-act="slower" aria-label="Slower">🐢</button>
+        <button class="play" data-act="play" aria-label="Play"><span class="pi" aria-hidden="true">▶</span></button>
+        <button class="ctl" data-act="faster" aria-label="Faster">🐇</button>
       </div>
       <div class="sub-controls">
         <button class="ghost" data-act="new">🎲 New</button>
@@ -95,7 +95,7 @@
 
     <div class="card">
       <label class="lbl">Type what you hear</label>
-      <textarea id="copyInput" rows="3" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Copy it here..."></textarea>
+      <textarea id="copyInput" aria-label="Type what you hear" rows="3" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Copy it here..."></textarea>
       <button class="big" id="copyCheck">✅ Check my copy</button>
       <div id="copyResult"></div>
     </div>
@@ -118,12 +118,12 @@
     <div class="player card" id="qsoPlayer">
       <div class="scope-wrap"><canvas class="scope"></canvas><div class="led"></div></div>
       <div class="controls">
-        <button class="ctl" data-act="slower">🐢</button>
-        <button class="play" data-act="play"><span class="pi">▶</span></button>
-        <button class="ctl" data-act="faster">🐇</button>
+        <button class="ctl" data-act="slower" aria-label="Slower">🐢</button>
+        <button class="play" data-act="play" aria-label="Play"><span class="pi" aria-hidden="true">▶</span></button>
+        <button class="ctl" data-act="faster" aria-label="Faster">🐇</button>
       </div>
       <div class="sub-controls">
-        <button class="ghost" data-act="new">🎲 New QSO</button>
+        <button class="ghost" data-act="new">🎲 New</button>
         <button class="ghost" data-act="reveal">👀 Transcript</button>
         <button class="ghost" data-act="quiz">🧠 Quiz</button>
       </div>
@@ -142,11 +142,6 @@
       <button data-v="sprint">🏁 Call Sprint</button>
     </div>
 
-    <div class="card"><details class="help"><summary>❓ How it works</summary>
-        <p><b>⚡ Reflex</b>: you hear one character, tap it on the pad. Every 3 right in a row adds 1 WPM, a quick answer (under 1.2 s) scores double, a miss costs a heart and 1 WPM. Three misses ends the round. Before you start, tap any key to hear it.</p>
-        <p><b>Koch set</b> uses your Koch lesson (shared with the Copy tab). Get 20 in a row and the next letter unlocks right in the game, or use the slider.</p>
-        <p><b>A–Z + 0–9</b> mixes letters and numbers together.</p>
-        <p><b>🏁 Call Sprint</b>: 25 callsigns like a contest pileup. Type what you heard and press Go. Right = more points and faster, wrong = slower. 🔁 Again replays it for half the points. Pick A–Z, 0–9 or A–Z + 0–9 instead of callsigns to sprint through random 3 to 5 character groups.</p></details></div>
 
     <div id="reflexGame">
       <div class="card hud">
@@ -166,11 +161,11 @@
         </div>
         <div id="rxKochRow" class="row hidden">
           <label class="lbl">Koch lesson <b id="rxKochVal">2</b> · 20 in a row unlocks the next letter</label>
-          <input type="range" id="rxKochLesson" min="2" max="40" value="2">
+          <input type="range" id="rxKochLesson" min="2" max="41" value="2">
           <div class="koch-chars" id="rxKochChars"></div>
         </div>
-        <div class="keypad" id="rxPad"></div>
         <button class="big" id="rxStart">⚡ Start</button>
+        <div class="keypad" id="rxPad"></div>
       </div>
     </div>
 
@@ -190,7 +185,7 @@
           <button data-v="mixed">A–Z + 0–9</button>
         </div>
         <div class="rx-msg" id="spMsg">25 rounds. Right answer = faster and more points. Wrong = slower. Like a real pileup, minus the lids.</div>
-        <input id="spInput" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Callsign" enterkeyhint="go">
+        <input id="spInput" aria-label="Your answer" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Callsign" enterkeyhint="go">
         <div class="row two">
           <button class="ghost" id="spRepeat">🔁 Again (−50%)</button>
           <button class="big" id="spGo">🏁 Start</button>
@@ -198,6 +193,12 @@
         <div id="spLog" class="splog"></div>
       </div>
     </div>
+
+    <div class="card"><details class="help"><summary>❓ How it works</summary>
+        <p><b>⚡ Reflex</b>: you hear one character, tap it on the pad. Every 3 right in a row adds 1 WPM, a quick answer (under 1.2 s) scores double, a miss costs a heart and 1 WPM. Three misses ends the round. Before you start, tap any key to hear it.</p>
+        <p><b>Koch set</b> uses your Koch lesson (shared with the Copy tab). Get 20 in a row and the next letter unlocks right in the game, or use the slider.</p>
+        <p><b>A–Z + 0–9</b> mixes letters and numbers together.</p>
+        <p><b>🏁 Call Sprint</b>: 25 callsigns like a contest pileup. Type what you heard and press ✅ Submit (or Go on the keyboard). Right = more points and faster, wrong = slower. 🔁 Again replays it for half the points. Pick A–Z, 0–9 or A–Z + 0–9 instead of callsigns to sprint through random 3 to 5 character groups.</p></details></div>
   </section>
 
   <!-- ===== KEY ===== -->
@@ -211,8 +212,8 @@
       <div id="keyPanel">
       <div class="challenge">
         <span>Send this:</span> <b id="keyTarget">—</b>
-        <button class="ghost tiny" id="keyNewTarget">🎯 New</button>
-        <button class="ghost tiny" id="keyHear">🔊</button>
+        <button class="ghost tiny" id="keyNewTarget">🎲 New</button>
+        <button class="ghost tiny" id="keyHear" aria-label="Hear it">🔊</button>
       </div>
       <div class="key-out">
         <div class="key-elems" id="keyElems"></div>
@@ -232,7 +233,7 @@
         <p><b>🔑 Key</b>: a straight key. A short tap is a dit, hold about three times as long for a dah. Leave a gap of about three dits between letters and seven between words, and the wolf decodes it live and shows your speed.</p>
         <p><b>🏓 Paddles</b>: iambic paddles. Hold DIT for a stream of dits, DAH for dahs, both together to alternate (for C, K, Y…). The app sets the timing, you just pick the order.</p>
         <p><b>🎙️ Mic</b>: hold the phone near a radio or speaker and it writes down the Morse it hears. If noise shows up as E and T, lower the sensitivity; if your signal is steady, 🔒 lock the tone.</p>
-        <p>🎯 New gives you something to send, 🔊 plays it so you know how it should sound.</p></details>
+        <p>🎲 New gives you something to send, 🔊 plays it so you know how it should sound.</p></details>
       <div id="micPanel" class="hidden">
         <p class="mic-tip">🐺 Hold your phone near a speaker or your rig. The wolf listens and writes down the Morse it hears.</p>
         <div class="mic-trace"><canvas id="micTrace"></canvas><div class="led" id="micLed"></div></div>
@@ -338,7 +339,7 @@
     <div class="card">
       <h3>📡 Morse</h3>
       <div class="row"><label class="lbl">Character speed <b id="slWpmVal">18</b> WPM</label><input type="range" id="slWpm" min="5" max="40" value="18"></div>
-      <div class="row"><label class="lbl">Effective speed <b id="slFwVal">10</b> WPM</label><input type="range" id="slFw" min="3" max="40" value="10"></div>
+      <div class="row"><label class="lbl">Effective speed (Farnsworth) <b id="slFwVal">10</b> WPM</label><input type="range" id="slFw" min="3" max="40" value="10"></div>
       <div class="row"><label class="lbl">Tone <b id="slPitchVal">550</b> Hz</label><input type="range" id="slPitch" min="300" max="900" step="10" value="550"></div>
       <div class="row"><label class="lbl">Morse volume <b id="slVolVal">60</b>%</label><input type="range" id="slVol" min="0" max="100" value="60"></div>
       <div class="toggles">
@@ -381,18 +382,18 @@
     <div class="card joke" id="joke"></div>
     <button class="big" id="shareApp2">📤 Share Dit Dah Dojo with a friend</button>
     <button class="ghost danger" id="resetAll">🗑️ Reset progress</button>
-    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.11.0 · 73 de Dit Dah Dojo</p>
+    <p class="foot"><a href="https://wolftronixsd.github.io/hobby-hub/">← Wolfie's Hobby Hub</a> · v1.12.0 · 73 de Dit Dah Dojo</p>
   </section>
 </main>
 
 <!-- Settings sheet -->
 <div class="sheet-back hidden" id="sheetBack"></div>
-<div class="sheet" id="sheet">
-  <div class="grab"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert>
+  <div class="sheet-head"><div class="grab"></div><h2 id="sheetTitle">⚙️ Settings</h2><button class="sheet-x" id="sheetX" aria-label="Close settings">✕</button></div>
   <div id="settings">
     <h3>🎛️ Sound &amp; speed</h3>
     <div class="row"><label class="lbl">Character speed <b id="wpmVal">20</b> WPM</label><input type="range" id="wpm" min="5" max="50" value="20"></div>
-    <div class="row"><label class="lbl">Effective (Farnsworth) speed <b id="fwVal">20</b> WPM</label><input type="range" id="fw" min="5" max="50" value="20"></div>
+    <div class="row"><label class="lbl">Effective speed (Farnsworth) <b id="fwVal">20</b> WPM</label><input type="range" id="fw" min="5" max="50" value="20"></div>
     <div class="row"><label class="lbl">Tone <b id="toneVal">600</b> Hz</label><input type="range" id="tone" min="300" max="1000" step="10" value="600"></div>
     <div class="row"><label class="lbl">Volume <b id="volVal">100</b>% · above 100 is boost 🔊</label><input type="range" id="vol" min="0" max="200" step="5" value="100"></div>
     <div class="row"><label class="lbl">Band noise (QRN) <b id="qrnVal">0</b>%</label><input type="range" id="qrn" min="0" max="100" value="0"></div>
@@ -403,8 +404,8 @@
       <label><input type="checkbox" id="vvv" checked> 📣 Start with "VVV"</label>
       <label><input type="checkbox" id="haptic" checked> 📳 Haptic feedback</label>
     </div>
-    <label class="lbl">Theme</label>
-    <div class="pills" id="themes">
+    <h3>🎨 Look</h3>
+    <div class="pills" id="themes" role="group" aria-label="Theme">
       <button data-v="neon" class="on">🟢 Neon Shack</button>
       <button data-v="tube">🟠 Tube Glow</button>
       <button data-v="ocean">🔵 Maritime</button>
@@ -416,7 +417,7 @@
     <label class="lbl">Signal color</label>
     <div class="swatches" id="vizColors"></div>
     <div class="toggles">
-      <label><input type="checkbox" id="vizFlash"> ⚡ Flash the whole screen (bright flashing light)</label>
+      <label><input type="checkbox" id="vizFlash"> ⚡ Flash the whole screen (⚠️ fast flashing light)</label>
       <label><input type="checkbox" id="vizTorch"> 🔦 Flash the phone's flashlight</label>
       <label><input type="checkbox" id="vizMute"> 💡 Light only: mute the beep and read the blinks</label>
     </div>
@@ -424,7 +425,7 @@
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <div id="night" class="hidden">
   <div class="n-top"><span id="nClock"></span><span id="nLeft"></span></div>
@@ -432,11 +433,11 @@
   <div id="nPhase"></div>
   <div id="nText"></div>
   <div class="n-size"><button id="nSmaller" aria-label="Smaller text">A−</button><span id="nSizeVal"></span><button id="nBigger" aria-label="Bigger text">A+</button><button id="nBright" aria-label="Bright text">☀️</button></div>
-  <div class="n-btns"><button id="nEye">👀</button><button id="nPause">⏸</button><button id="nStop">⏹ Stop</button></div>
+  <div class="n-btns"><button id="nEye" aria-label="Show or hide text">👀</button><button id="nPause" aria-label="Pause">⏸</button><button id="nStop">⏹ Stop</button></div>
   <div class="n-hint">tap anywhere to dim</div>
 </div>
 
-<nav class="tabs">
+<nav class="tabs" aria-label="Sections">
   <button data-tab="copy" class="on"><i>🎧</i>Copy</button>
   <button data-tab="qso"><i>📻</i>QSO</button>
   <button data-tab="games"><i>⚡</i>Games</button>
@@ -446,12 +447,12 @@
   <button data-tab="me"><i>🏆</i>Me</button>
 </nav>
 
-<script src="morse.js?v=1.11.0"></script>
-<script src="dsp.js?v=1.11.0"></script>
-<script src="decoder.js?v=1.11.0"></script>
-<script src="lingo.js?v=1.11.0"></script>
-<script src="app.js?v=1.11.0"></script>
-<script src="viz.js?v=1.11.0"></script>
-<script src="sleep.js?v=1.11.0"></script>
+<script src="morse.js?v=1.12.0"></script>
+<script src="dsp.js?v=1.12.0"></script>
+<script src="decoder.js?v=1.12.0"></script>
+<script src="lingo.js?v=1.12.0"></script>
+<script src="app.js?v=1.12.0"></script>
+<script src="viz.js?v=1.12.0"></script>
+<script src="sleep.js?v=1.12.0"></script>
 </body>
 </html>

@@ -41,7 +41,13 @@ const Viz = (() => {
   const rings = []; // ripple start times
   const state = new WeakMap(); // per-canvas memory (waterfall image)
 
-  const color = () => S.set.vizColor || getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#4dffb0";
+  let accent = "", accentAt = 0;
+  const color = () => {
+    if (S.set.vizColor) return S.set.vizColor;
+    const t = performance.now();
+    if (t - accentAt > 500) { accentAt = t; accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#4dffb0"; }
+    return accent;
+  };
   const rgba = (hex, a) => {
     const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
     return m ? `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})` : hex;
@@ -141,6 +147,8 @@ const Viz = (() => {
 
   const draw = () => {
     requestAnimationFrame(draw);
+    // nothing to draw in the background or under the night screen: save the battery
+    if (document.hidden || (typeof Sleep !== "undefined" && Sleep.on)) return;
     const now = performance.now(), on = Sound.toneOn;
     // tone state history
     if (on !== wasOn) { wasOn = on; hist.push([now, on]); if (on) rings.push(now); }
@@ -186,7 +194,7 @@ const Viz = (() => {
 (() => {
   $("#vizModes").innerHTML = VIZ_MODES.map((m) => `<button data-v="${m.v}">${m.n}</button>`).join("");
   $("#vizColors").innerHTML =
-    VIZ_COLORS.map((c) => `<button data-v="${c}" title="${c || "Theme color"}" style="--c:${c || "var(--accent)"}">${c ? "" : "🎨"}</button>`).join("") +
+    VIZ_COLORS.map((c) => `<button data-v="${c}" title="${c || "Theme color"}" aria-label="Signal color ${c || "from theme"}" style="--c:${c || "var(--accent)"}">${c ? "" : "🎨"}</button>`).join("") +
     `<label class="sw-custom" title="Pick any color">🌈<input type="color" id="vizCustom"></label>`;
   const sync = () => {
     const s = S.set;
@@ -213,7 +221,10 @@ const Viz = (() => {
     toast(r === "denied" ? "🔦 Camera access was blocked, and the flashlight needs it." : "🔦 This browser can't switch the flashlight. iPhone doesn't allow it for web apps yet, so try ⚡ Flash the whole screen.", 4500);
   });
   document.addEventListener("visibilitychange", () => { if (document.hidden && Torch.track) { Torch.disable(); $("#vizTorch").checked = false; } });
-  $("#vizFlash").addEventListener("change", (e) => { S.set.vizFlash = e.target.checked; save(); sync(); if (e.target.checked) demo(); });
+  $("#vizFlash").addEventListener("change", (e) => {
+    if (e.target.checked && !confirm("⚠️ Photosensitivity warning\n\nThis flashes the whole screen quickly, several times a second. Don't use it if flashing lights can trigger seizures or migraines for you or anyone nearby.\n\nTurn it on?")) { e.target.checked = false; return; }
+    S.set.vizFlash = e.target.checked; save(); sync(); if (e.target.checked) demo();
+  });
   $("#vizMute").addEventListener("change", (e) => {
     S.set.vizMute = e.target.checked; save(); sync();
     if (e.target.checked) { if (S.set.viz === "scope" || S.set.viz === "fall") { S.set.viz = "lamp"; save(); sync(); } toast("💡 Light only: read the blinks, no beeps!", 2500); demo(); }

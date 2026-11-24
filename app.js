@@ -20,7 +20,10 @@ try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
 S = { ...DEFAULTS, ...S, set: { ...DEFAULTS.set, ...S.set }, copy: { ...DEFAULTS.copy, ...S.copy }, games: { ...DEFAULTS.games, ...S.games }, stats: { ...DEFAULTS.stats, ...S.stats }, badges: { ...S.badges }, ui: { ...S.ui } };
 // v1.9: the tone got a louder range, so lift old quiet volumes once
 if (!S.ui.loud) { S.ui.loud = 1; if (S.set.vol < 100) S.set.vol = 100; }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+const save = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch { try { localStorage.removeItem("ddd-news"); localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+};
 
 /* ---------- fun text ---------- */
 const LEVELS = [
@@ -51,6 +54,7 @@ const JOKES = [
 const PHONETIC = { A: "Alfa", B: "Bravo", C: "Charlie", D: "Delta", E: "Echo", F: "Foxtrot", G: "Golf", H: "Hotel", I: "India", J: "Juliett", K: "Kilo", L: "Lima", M: "Mike", N: "November", O: "Oscar", P: "Papa", Q: "Quebec", R: "Romeo", S: "Sierra", T: "Tango", U: "Uniform", V: "Victor", W: "Whiskey", X: "X-ray", Y: "Yankee", Z: "Zulu", ".": "period", ",": "comma", "?": "question mark", "/": "slash", "=": "break" };
 
 /* ---------- little helpers ---------- */
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function toast(msg, ms = 1800) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
   clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), ms);
@@ -82,7 +86,8 @@ function speak(text) {
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 const sayChar = (c) => PHONETIC[c] || c;
-const today = () => new Date().toISOString().slice(0, 10);
+const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => dayKey(new Date());
 
 /* ---------- confetti ---------- */
 const Confetti = (() => {
@@ -101,6 +106,7 @@ const Confetti = (() => {
     if (parts.length) requestAnimationFrame(loop); else running = false;
   };
   return (n = 120, emoji) => {
+    if (reducedMotion()) return;
     cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio;
     const dpr = devicePixelRatio;
     for (let i = 0; i < n; i++) parts.push({
@@ -117,21 +123,25 @@ const xpFor = (lvl) => 60 * lvl * (lvl - 1); // total XP to reach level
 const levelOf = (xp) => { let l = 1; while (xp >= xpFor(l + 1)) l++; return l; };
 const titleOf = (l) => LEVELS[Math.min(l, LEVELS.length) - 1];
 
+const sleeping = () => typeof Sleep !== "undefined" && Sleep.on;
+const laterParty = [];
+function celebrate(fn, ms) { if (sleeping()) laterParty.push(fn); else setTimeout(fn, ms); }
+function flushCelebrations() { laterParty.splice(0).forEach((fn, i) => setTimeout(fn, 1200 + i * 2800)); }
 function addXp(n) {
   n = Math.max(0, Math.round(n));
   const before = levelOf(S.xp);
   S.xp += n;
   const d = today();
   if (S.lastDay !== d) {
-    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const yd = new Date(); yd.setDate(yd.getDate() - 1); const y = dayKey(yd);
     S.streak = S.lastDay === y ? S.streak + 1 : 1;
     S.lastDay = d;
-    if (S.streak > 1) setTimeout(() => toast(`🔥 ${S.streak} day streak! Keep the fist warm.`), 1900);
+    if (S.streak > 1) celebrate(() => toast(`🔥 ${S.streak} day streak! Keep the fist warm.`), 1900);
   }
   const after = levelOf(S.xp);
   if (after > before) {
     const [t, e] = titleOf(after);
-    setTimeout(() => { fx("level"); howl(); Confetti(160, e); toast(`${e} LEVEL UP! You are now a ${t}`, 3000); }, 700);
+    celebrate(() => { fx("level"); howl(); Confetti(160, e); toast(`${e} LEVEL UP! You are now a ${t}`, 3000); }, 700);
   }
   checkBadges(); save(); renderHeader();
 }
@@ -154,7 +164,7 @@ const BADGES = [
   { id: "streak3", i: "🔥", n: "On Fire", d: "3 day streak", ok: () => S.streak >= 3 },
   { id: "streak7", i: "🌋", n: "Volcano", d: "7 day streak", ok: () => S.streak >= 7 },
   { id: "owl", i: "🦉", n: "Night Owl", d: "Practice after midnight", ok: () => { const h = new Date().getHours(); return h >= 0 && h < 4 && S.stats.sessions > 0; } },
-  { id: "koch", i: "🎓", n: "Koch Graduate", d: "Reach Koch lesson 40", ok: () => S.copy.koch >= 40 },
+  { id: "koch", i: "🎓", n: "Koch Graduate", d: "Learn every Koch character", ok: () => S.copy.koch >= KOCH.length },
   { id: "lvl5", i: "⭐", n: "Rising Star", d: "Reach level 5", ok: () => levelOf(S.xp) >= 5 },
   { id: "lvl10", i: "🌟", n: "Legend", d: "Reach level 10", ok: () => levelOf(S.xp) >= 10 },
 ];
@@ -162,7 +172,7 @@ function checkBadges() {
   for (const b of BADGES) {
     if (!S.badges[b.id] && b.ok()) {
       S.badges[b.id] = Date.now();
-      setTimeout(() => { fx("level"); Confetti(80, b.i); toast(`${b.i} Badge unlocked: ${b.n}!`, 2600); }, 1200);
+      celebrate(() => { fx("level"); Confetti(80, b.i); toast(`${b.i} Badge unlocked: ${b.n}!`, 2600); }, 1200);
     }
   }
 }
@@ -185,14 +195,15 @@ function makePlayer(root, { getText, render, prefix = () => "" }) {
   const led = $(".led", root), btn = $(".play", root), out = $("[data-out=text]", root);
   let job = null;
   const setLed = (on) => led.classList.toggle("on", on);
-  const stop = () => { Sound.stop(); job = null; btn.classList.remove("playing"); $(".pi", btn).textContent = "▶"; };
+  const idle = () => { job = null; btn.classList.remove("playing"); $(".pi", btn).textContent = "▶"; btn.setAttribute("aria-label", "Play"); setLed(false); };
+  const stop = () => { if (job && Sound.current === job) Sound.stop(); idle(); };
   const play = () => {
     if (job) return stop();
     const text = getText();
     const pre = prefix();
     const skip = pre ? tokenize(pre).length : 0;
     render(out, text);
-    btn.classList.add("playing"); $(".pi", btn).textContent = "■";
+    btn.classList.add("playing"); $(".pi", btn).textContent = "■"; btn.setAttribute("aria-label", "Stop");
     job = Sound.play(pre + text, {
       onTone: setLed,
       onChar: (i) => {
@@ -200,7 +211,8 @@ function makePlayer(root, { getText, render, prefix = () => "" }) {
         const spans = $$("[data-i]", out);
         spans.forEach((s) => { const n = +s.dataset.i; s.classList.toggle("cur", n === k); s.classList.toggle("done", n < k); });
       },
-      onEnd: () => { stop(); $$("[data-i]", out).forEach((s) => { s.classList.remove("cur"); s.classList.add("done"); }); },
+      onCancel: idle,
+      onEnd: () => { idle(); $$("[data-i]", out).forEach((s) => { s.classList.remove("cur"); s.classList.add("done"); }); },
     });
   };
   root.addEventListener("click", (e) => {
@@ -226,7 +238,7 @@ function changeWpm(d) {
 }
 
 /* ---------- COPY tab ---------- */
-let copyText = "";
+let copyText = "", copyScored = "";
 function newCopyText() {
   const c = S.copy;
   if (c.mode === "groups") {
@@ -298,6 +310,9 @@ function scoreCopy() {
   const norm = (s) => s.toUpperCase().replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
   const want = norm(copyText), got = norm($("#copyInput").value);
   if (!got) { toast("✍️ Type what you heard first!"); return; }
+  if (copyScored === copyText + "\u0000" + got) { toast("✅ Already checked. Tap 🎲 New for a fresh one!"); return; }
+  const firstTry = copyScored.split("\u0000")[0] !== copyText;
+  copyScored = copyText + "\u0000" + got;
   const { dist, ops } = align(want, got);
   const pct = Math.max(0, Math.round((1 - dist / want.length) * 100));
   const right = ops.filter((o) => o[0] === "ok" && o[1] !== " ").length;
@@ -308,19 +323,22 @@ function scoreCopy() {
     k === "miss" ? `<span class="miss">${esc(a)}</span>` : `<span class="bad">${esc(a)}</span>`).join("");
   const band = pct === 100 ? 100 : pct >= 90 ? 90 : pct >= 70 ? 70 : pct >= 40 ? 40 : 0;
   const st = S.stats;
+  const gainFull = right * (S.set.wpm / 10) * (pct === 100 ? 1.5 : 1);
+  const gain = firstTry ? gainFull : 0; // a re-check shows the score but doesn't pay again
+  if (firstTry) {
   st.sessions++; st.chars += right; if (pct === 100) st.perfect++;
   if (pct >= 90) st.maxWpm = Math.max(st.maxWpm, S.set.wpm);
   st.history = [...st.history, pct].slice(-20);
-  if (S.copy.mode === "groups" && S.copy.chars === "koch" && pct >= 90 && S.copy.koch < 40) {
+  if (S.copy.mode === "groups" && S.copy.chars === "koch" && pct >= 90 && S.copy.koch < KOCH.length) {
     S.copy.koch++; syncCopyUi();
     setTimeout(() => toast(`🎓 90%+! Koch lesson ${S.copy.koch} unlocked: new char "${KOCH[S.copy.koch - 1]}"`, 3200), 1200);
   }
-  const gain = right * (S.set.wpm / 10) * (pct === 100 ? 1.5 : 1);
+  }
   $("#copyResult").innerHTML = `<div class="result">
     <div class="score-big">${pct}%</div>
     <div class="quip">${pick(QUIPS[band])}</div>
     <div class="diff">${diff}</div>
-    <div class="xp-gain">+${Math.round(gain)} XP</div></div>`;
+    <div class="xp-gain">${firstTry ? `+${Math.round(gain)} XP` : "Re-check: no extra XP"}</div></div>`;
   copyPlayer.out.classList.remove("blurred");
   if (pct >= 90) { fx("good"); Confetti(pct === 100 ? 160 : 70, pct === 100 ? "💯" : "✨"); } else fx(pct >= 50 ? "tick" : "bad");
   addXp(gain);
@@ -357,6 +375,7 @@ seg("#qsoType", (v) => { qsoKind = v; $$("#qsoType button").forEach((b) => b.cla
 
 function startQuiz() {
   const qs = shuffle(qsoQuiz(qso.facts)).slice(0, 5);
+  const paid = qso.quizPaid; qso.quizPaid = true; // retaking the quiz on the same QSO is just for fun
   let answered = 0, right = 0;
   const box = $("#quiz");
   box.innerHTML = qs.map((q, n) => `<div class="q" data-n="${n}"><p>${n + 1}. ${q.q}</p><div class="opts">${q.opts.map((o) => `<button>${o}</button>`).join("")}</div></div>`).join("");
@@ -370,13 +389,13 @@ function startQuiz() {
     if (b.textContent === q.right) { b.classList.add("right"); right++; fx("good"); }
     else { b.classList.add("wrong"); $$("button", qd).find((x) => x.textContent === q.right).classList.add("right"); fx("bad"); }
     if (answered === qs.length) {
-      S.stats.qsos++;
       const perfect = right === qs.length;
-      if (perfect) { S.stats.qsoPerfect++; Confetti(150, "📻"); }
+      if (!paid) { S.stats.qsos++; if (perfect) S.stats.qsoPerfect++; }
+      if (perfect) Confetti(150, "📻");
       qsoPlayer.out.classList.remove("blurred");
       const msg = perfect ? "🕵️ Perfect! Nothing gets past your ears." : right >= qs.length - 1 ? "👂 Great copy! Almost a full QSL." : right >= 2 ? "📡 Decent! Maybe replay with 🐢?" : "🙉 Were you making coffee during that QSO?";
-      box.insertAdjacentHTML("beforeend", `<div class="result"><div class="score-big">${right}/${qs.length}</div><div class="quip">${msg}</div><div class="xp-gain">+${right * 15 * (S.set.wpm / 15) | 0} XP</div></div>`);
-      addXp(right * 15 * (S.set.wpm / 15));
+      box.insertAdjacentHTML("beforeend", `<div class="result"><div class="score-big">${right}/${qs.length}</div><div class="quip">${msg}</div><div class="xp-gain">${paid ? "Retake: no extra XP" : `+${right * 15 * (S.set.wpm / 15) | 0} XP`}</div></div>`);
+      if (!paid) addXp(right * 15 * (S.set.wpm / 15));
     }
   };
 }
@@ -404,7 +423,7 @@ function rxNext() {
 }
 function rxStart() {
   Sound.unlock();
-  Object.assign(RX, { on: true, streak: 0, score: 0, wpm: S.set.wpm, lives: 3, cur: "", n: 0 });
+  Object.assign(RX, { round: (RX.round || 0) + 1, on: true, streak: 0, score: 0, wpm: S.set.wpm, lives: 3, cur: "", n: 0 });
   $("#rxStart").textContent = "⏹ Stop"; rxHud(); rxNext();
 }
 function rxStop(msg) {
@@ -427,7 +446,7 @@ $("#rxPad").addEventListener("click", (e) => {
     b.classList.add("right"); fx("good");
     rxMsg(bonus > 1 ? pick(["⚡ LIGHTNING!", "🔥 Blazing!", "🚀 Instant!", "😎 Too easy"]) : pick(["✅ Yep!", "👍 Got it", "🎯 Bullseye"]), "good");
     if (RX.streak > S.stats.rxBest) { S.stats.rxBest = RX.streak; checkBadges(); save(); }
-    if (RX.set === "koch" && RX.streak % 20 === 0 && S.copy.koch < 40) { // Koch level-up inside the game
+    if (RX.set === "koch" && RX.streak % 20 === 0 && S.copy.koch < KOCH.length) { // Koch level-up inside the game
       S.copy.koch++; save(); syncCopyUi(); setTimeout(rxPad, 560);
       setTimeout(() => toast(`🎓 20 in a row! Koch lesson ${S.copy.koch} unlocked: new char "${KOCH[S.copy.koch - 1]}"`, 3200), 600);
     }
@@ -439,13 +458,15 @@ $("#rxPad").addEventListener("click", (e) => {
     const rb = $(`#rxPad [data-c="${CSS.escape(RX.cur)}"]`); rb && rb.classList.add("hint");
     rxMsg(`❌ That was ${RX.cur}  ${CODE[RX.cur].replace(/\./g, "·").replace(/-/g, "–")}`, "bad");
     speak(`That was ${sayChar(RX.cur)}`);
+    const round = RX.round;
     setTimeout(() => {
       b.classList.remove("wrong"); rb && rb.classList.remove("hint");
+      if (!RX.on || RX.round !== round) return;
       if (RX.lives <= 0) {
         addXp(RX.score / 4);
         if (RX.score > 0) Confetti(60, "⚡");
         rxStop(`💀 Game over! Score ${RX.score}. Best streak ever: ${S.stats.rxBest}. +${Math.round(RX.score / 4)} XP`);
-      } else Sound.play(RX.cur, { wpm: RX.wpm, onTone: (on) => $("#rxLed").classList.toggle("on", on), onEnd: () => setTimeout(rxNext, 500) });
+      } else Sound.play(RX.cur, { wpm: RX.wpm, onTone: (on) => $("#rxLed").classList.toggle("on", on), onEnd: () => setTimeout(rxNext, 500), onCancel: () => { if (RX.round === round) setTimeout(() => RX.round === round && rxNext(), 500); } });
     }, 900);
   }
   rxHud();
@@ -471,6 +492,8 @@ function spSetUi() {
 }
 function spPlay() { Sound.play(SP.call, { wpm: SP.wpm, fw: SP.wpm, onTone: (on) => $("#spLed").classList.toggle("on", on) }); }
 function spNext() {
+  SP.waiting = false;
+  if (!SP.on) return;
   if (SP.n >= SP.total) return spEnd();
   SP.call = spTarget(); SP.repeated = false; SP.n++;
   $("#spInput").value = ""; $("#spInput").focus();
@@ -484,10 +507,11 @@ function spEnd() {
   addXp(SP.pts / 10); spHud();
 }
 function spSubmit() {
-  if (!SP.on) return;
+  if (!SP.on || SP.waiting) return;
   const got = $("#spInput").value.toUpperCase().replace(/\s/g, "");
   if (!got) return spPlay();
   const ok = got === SP.call;
+  SP.waiting = true;
   let p = 0;
   if (ok) { p = Math.round(SP.call.length * SP.wpm * (SP.repeated ? 0.5 : 1)); SP.pts += p; SP.wpm = Math.min(60, SP.wpm + 2); fx("good"); }
   else { SP.wpm = Math.max(8, SP.wpm - 2); fx("bad"); }
@@ -591,7 +615,7 @@ seg("#keyType", (v) => {
   K.type = v; $$("#keyType button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
   $("#straightKey").classList.toggle("hidden", v !== "straight"); $("#paddleKey").classList.toggle("hidden", v !== "paddle");
   $("#keyPanel").classList.toggle("hidden", v === "mic"); $("#micPanel").classList.toggle("hidden", v !== "mic");
-  if (v !== "mic" && MicDecoder.on) micStop();
+  if (v !== "mic" && (MicDecoder.on || micBusy)) micStop();
 });
 $("#keyClear").addEventListener("click", () => { K.text = ""; K.elems = ""; keyRender(); });
 $("#keyNewTarget").addEventListener("click", () => { fx("tick"); keyNewTarget(); });
@@ -663,17 +687,21 @@ $("#settingsHere").innerHTML = `<button class="big" id="openSettings">🎛️ Sp
 $("#openSettings").addEventListener("click", () => openSheet());
 $("#resetAll").addEventListener("click", () => {
   if (!confirm("Reset all XP, stats and badges? Your settings stay.")) return;
-  const set = S.set; S = JSON.parse(JSON.stringify(DEFAULTS)); S.set = set; save(); renderHeader(); renderMe(); syncCopyUi(); toast("🧹 Fresh start. Every legend was a lid once!");
+  const keep = { set: S.set, sleep: S.sleep, ui: S.ui };
+  S = { ...JSON.parse(JSON.stringify(DEFAULTS)), ...keep }; S.stats.sleepMin = 0; save(); renderHeader(); renderMe(); syncCopyUi(); toast("🧹 Fresh start. Every legend was a lid once!");
 });
 
 /* ---------- KEY tab: mic decoder ---------- */
 let micText = "";
 function micRender() { $("#micText").textContent = micText || "…"; const el = $("#micText"); el.scrollTop = el.scrollHeight; }
+let micBusy = false, micCancel = false;
 async function micStartListening() {
   const btn = $("#micStart");
+  if (micBusy) return;
   if (!navigator.mediaDevices?.getUserMedia) { toast("🙉 This browser can't use the microphone"); return; }
   MicDecoder.wpmGuess = S.set.wpm; micTrace.pts = [];
   if (!MicDecoder.locked) MicDecoder.freq = S.set.tone;
+  micBusy = true; micCancel = false; btn.textContent = "⏳ Opening the mic…";
   try {
     await MicDecoder.start({
       level: (core) => micTracePush(core),
@@ -683,17 +711,21 @@ async function micStartListening() {
       text: (t) => { micText = t; micRender(); },
     });
   } catch (err) {
+    micBusy = false; btn.textContent = "🎙️ Start listening";
     toast(err && err.name === "NotAllowedError" ? "🎙️ Mic blocked. Tap aA in Safari's address bar › Website Settings › Microphone › Allow" : `🙉 Couldn't open the microphone (${(err && (err.name || err.message)) || "unknown"})`, 5000);
     return;
   }
+  micBusy = false;
+  if (micCancel) { MicDecoder.stop(); btn.textContent = "🎙️ Start listening"; return; }
   btn.textContent = "⏹ Stop listening"; btn.classList.add("listening"); buzz();
   howl();
 }
 function micStop() {
+  if (micBusy) micCancel = true;
   MicDecoder.stop();
   $("#micStart").textContent = "🎙️ Start listening"; $("#micStart").classList.remove("listening");
 }
-$("#micStart").addEventListener("click", () => (MicDecoder.on ? micStop() : micStartListening()));
+$("#micStart").addEventListener("click", () => (MicDecoder.on || micBusy ? micStop() : micStartListening()));
 $("#micClear").addEventListener("click", () => { micText = ""; MicDecoder.core && MicDecoder.core.clearText(); micRender(); fx("tick"); });
 $("#micSens").addEventListener("input", (e) => { $("#micSensVal").textContent = e.target.value; MicDecoder.setSens(e.target.value / 100); });
 
@@ -745,9 +777,17 @@ $("#wolfLogo").addEventListener("click", () => {
 });
 
 /* ---------- settings sheet ---------- */
-function openSheet() { $("#sheet").classList.add("open"); $("#sheetBack").classList.remove("hidden"); }
-function closeSheet() { $("#sheet").classList.remove("open"); $("#sheetBack").classList.add("hidden"); }
+function openSheet() {
+  const sh = $("#sheet"); sh.inert = false; sh.classList.add("open"); $("#sheetBack").classList.remove("hidden");
+  sh.scrollTop = 0; setTimeout(() => $("#sheetX").focus({ preventScroll: true }), 50);
+}
+function closeSheet() {
+  const sh = $("#sheet"); if (!sh.classList.contains("open")) return;
+  sh.classList.remove("open"); sh.inert = true; $("#sheetBack").classList.add("hidden"); $("#speedChip").focus({ preventScroll: true });
+}
 $("#speedChip").addEventListener("click", openSheet);
+$("#sheetX").addEventListener("click", closeSheet);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
 $("#sheetBack").addEventListener("click", closeSheet);
 $("#sheetDone").addEventListener("click", closeSheet);
 
@@ -757,6 +797,7 @@ function syncSettings() {
   for (const id of ["qsb", "sfx", "speak", "vvv", "haptic"]) $("#" + id).checked = s[id];
   $$("#themes button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.theme));
   document.body.dataset.theme = s.theme;
+  $('meta[name="theme-color"]').content = { neon: "#0b0820", tube: "#140904", ocean: "#021022", candy: "#2a0630" }[s.theme] || "#0b0820";
   Object.assign(Sound.opts, { wpm: s.wpm, fw: Math.min(s.fw, s.wpm), tone: s.tone, vol: s.vol / 100, qrn: s.qrn / 100, qsb: s.qsb });
   if (Sound.master) Sound.master.gain.value = s.vol / 100;
   renderHeader();
@@ -782,9 +823,9 @@ $(".tabs").addEventListener("click", (e) => {
   $$(".tab").forEach((t) => t.classList.toggle("active", t.id === "tab-" + b.dataset.tab));
   copyPlayer.stop(); qsoPlayer.stop(); if (RX.on) rxStop("Paused. Tap Start for a fresh round.");
   if (SP.on) { SP.on = false; $("#spGo").textContent = "🏁 Start"; $("#spMsg").textContent = "Sprint stopped. Tap Start to try again."; }
-  Sound.stop(); fx("tick"); if (MicDecoder.on) micStop();
+  Sound.stop(); fx("tick"); if (MicDecoder.on || micBusy) micStop();
   if (b.dataset.tab === "me") renderMe();
-  scrollTo({ top: 0, behavior: "smooth" });
+  scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
 });
 async function shareText(text) {
   const url = location.href.split("#")[0];
@@ -806,10 +847,18 @@ $("#shareApp").addEventListener("click", shareApp);
 $("#shareApp2").addEventListener("click", shareApp);
 const isIos = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
-if (isIos && !standalone && !localStorage.getItem("ddd-nohint")) $("#installHint").classList.remove("hidden");
+// install hint from the second visit on, so the first one isn't crowded
+let launches = 0;
+try { launches = +localStorage.getItem("ddd-launches") + 1; localStorage.setItem("ddd-launches", launches); } catch {}
+let noHint = false; try { noHint = !!localStorage.getItem("ddd-nohint"); } catch {}
+if (isIos && !standalone && launches >= 2 && !noHint) $("#installHint").classList.remove("hidden");
 $$("[data-close]").forEach((b) => b.addEventListener("click", () => { $("#" + b.dataset.close).classList.add("hidden"); try { localStorage.setItem("ddd-nohint", "1"); } catch {} }));
-document.addEventListener("pointerdown", () => Sound.unlock(), { once: true });
-document.addEventListener("visibilitychange", () => { if (document.hidden) { copyPlayer.stop(); qsoPlayer.stop(); Sound.keyUp(); if (MicDecoder.on) micStop(); } });
+for (const ev of ["pointerdown", "touchend", "click"]) document.addEventListener(ev, () => Sound.unlock(), { once: true, passive: true });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) return;
+  copyPlayer.stop(); qsoPlayer.stop(); Sound.keyUp(); if (MicDecoder.on || micBusy) micStop();
+  K.down = false; P.dit = P.dah = false; sk.classList.remove("down"); $$(".paddle").forEach((b) => b.classList.remove("down"));
+});
 
 /* ---------- go ---------- */
 syncSettings(); syncCopyUi(); newCopyText(); newQso(); rxSetUi(); rxPad(); rxHud(); spSetUi(); spHud(); keyNewTarget(); renderChart("letters"); renderHeader();
@@ -843,3 +892,26 @@ syncSettings(); syncCopyUi(); newCopyText(); newQso(); rxSetUi(); rxPad(); rxHud
 })();
 if (S.xp === 0) setTimeout(() => toast("👋 Welcome to the Dojo! Hit ▶ and copy what you hear.", 3200), 600);
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+/* ---------- accessibility helpers ---------- */
+(() => {
+  // tie every "lbl" caption to the slider or box after it, so VoiceOver reads a name
+  let n = 0;
+  for (const l of $$("label.lbl")) {
+    if (l.htmlFor || l.querySelector("input,textarea")) continue;
+    let el = l.nextElementSibling;
+    while (el && !el.matches("input,textarea,select") && !(el.querySelector && el.querySelector("input,textarea"))) el = el.nextElementSibling;
+    if (el && !el.matches("input,textarea,select")) el = el.querySelector("input,textarea");
+    if (!el) continue;
+    if (!el.id) el.id = "fld" + n++;
+    l.htmlFor = el.id;
+  }
+  // selected state for buttons that only show it with color
+  const pressed = () => {
+    $$(".seg button[data-v], .pills button[data-v]").forEach((b) => b.setAttribute("aria-pressed", b.classList.contains("on")));
+    $$(".tabs button").forEach((b) => b.toggleAttribute("aria-current", b.classList.contains("on")));
+    $("#streak").setAttribute("aria-label", `Daily streak ${S.streak} days`);
+  };
+  document.addEventListener("click", () => setTimeout(pressed, 0));
+  pressed();
+})();
