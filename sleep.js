@@ -6,13 +6,20 @@ const SLEEP_DEFAULTS = {
   source: "ham", easy: true, wpm: 18, fw: 10, pitch: 550, vol: 60, echo: false, drift: true, show: true,
   primer: 5, wave: "theta", beatsUnder: true, beatVol: 35, amb: "ocean", ambVol: 35, timer: 30, custom: "", zoom: 0, bright: false,
 };
+// A settings link is used once: opening the same bookmark again must not undo newer choices
 let fromLink = null;
 try {
   const m = location.hash.match(/sleep=([^&]+)/);
-  if (m) fromLink = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+  if (m) {
+    history.replaceState(null, "", location.pathname + location.search);
+    if (localStorage.getItem("ddd-sleep-link") !== m[1]) {
+      fromLink = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+      localStorage.setItem("ddd-sleep-link", m[1]);
+    }
+  }
 } catch {}
 S.sleep = { ...SLEEP_DEFAULTS, ...(S.sleep || {}), ...(fromLink && typeof fromLink === "object" ? fromLink : {}) };
-if (fromLink) { save(); history.replaceState(null, "", location.pathname + location.search); setTimeout(() => toast("💾 Sleep settings restored"), 600); }
+if (fromLink) { save(); setTimeout(() => toast("💾 Sleep settings restored"), 600); }
 try { navigator.storage?.persist?.(); } catch {}
 S.stats.sleepMin = S.stats.sleepMin || 0;
 BADGES.push(

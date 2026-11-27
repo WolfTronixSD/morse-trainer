@@ -20,10 +20,22 @@ try { S = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { S = {}; }
 S = { ...DEFAULTS, ...S, set: { ...DEFAULTS.set, ...S.set }, copy: { ...DEFAULTS.copy, ...S.copy }, games: { ...DEFAULTS.games, ...S.games }, stats: { ...DEFAULTS.stats, ...S.stats }, badges: { ...S.badges }, ui: { ...S.ui } };
 // v1.9: the tone got a louder range, so lift old quiet volumes once
 if (!S.ui.loud) { S.ui.loud = 1; if (S.set.vol < 100) S.set.vol = 100; }
+// Another open copy of the app (an old Safari tab, say) must not overwrite newer settings:
+// once someone else has saved, this copy stops saving and reloads the next time it's shown.
+let staleCopy = false, saveWarned = false;
 const save = () => {
-  try { localStorage.setItem(KEY, JSON.stringify(S)); }
-  catch { try { localStorage.removeItem("ddd-news"); localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+  if (staleCopy) return;
+  try { localStorage.setItem(KEY, JSON.stringify(S)); return; } catch {}
+  try { localStorage.removeItem("ddd-news"); localStorage.setItem(KEY, JSON.stringify(S)); return; } catch {}
+  if (!saveWarned) { saveWarned = true; setTimeout(() => toast("⚠️ Can't save your settings: phone storage is full or this is a Private tab", 5000), 500); }
 };
+addEventListener("storage", (e) => { if (e.key === KEY) staleCopy = true; });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && staleCopy && !(typeof Sleep !== "undefined" && Sleep.on)) location.reload();
+});
+addEventListener("pagehide", save);
+// v1.12 and older kept the whole news feed, which could fill the storage and block saving
+try { const n = localStorage.getItem("ddd-news"); if (n && n.length > 60000) localStorage.removeItem("ddd-news"); } catch {}
 
 /* ---------- fun text ---------- */
 const LEVELS = [
